@@ -3,33 +3,59 @@ import { useState } from 'react'
 const fmtDate = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) : '[Date TBD]'
 const fmtTime = (t) => { if(!t) return '[Time TBD]'; const [h,m]=t.split(':'); const hr=parseInt(h); return `${hr%12||12}:${m} ${hr>=12?'PM':'AM'}` }
 
-const buildBody = (venue, tour, surveyLink) => {
-  const artist = tour?.artist || '[Artist]'
-  const greeting = venue.contactName ? `Hi ${venue.contactName},` : `Hi ${venue.venueName} Team,`
-  return `${greeting}
+const render = (text, venue, tour, surveyLink) =>
+  (text || '')
+    .replace(/{{venue_name}}/g,   venue.venueName   || '')
+    .replace(/{{contact_name}}/g, venue.contactName || (venue.venueName + ' Team'))
+    .replace(/{{artist}}/g,       tour?.artist       || '[Artist]')
+    .replace(/{{date}}/g,         fmtDate(venue.showDate))
+    .replace(/{{time}}/g,         fmtTime(venue.showTime))
+    .replace(/{{city}}/g,         venue.city         || '')
+    .replace(/{{survey_link}}/g,  surveyLink         || '[Add survey link in Settings]')
 
-We're reaching out about an upcoming performance at ${venue.venueName}.
+export default function EmailModal({ venue, tour, templates, surveyLink, accessToken, onReAuth, onSent, onClose }) {
+  // Pick template: tour's assigned template → first available → fallback
+  const pickTemplate = () => {
+    if (tour?.emailTemplateId && templates?.length) {
+      const t = templates.find(t => t.id === tour.emailTemplateId)
+      if (t) return t
+    }
+    return templates?.[0] || null
+  }
 
-${artist} will be performing on ${fmtDate(venue.showDate)} at ${fmtTime(venue.showTime)}.
+  const buildInitial = () => {
+    const tpl = pickTemplate()
+    if (tpl) {
+      return {
+        subject: render(tpl.subject, venue, tour, surveyLink),
+        body:    render(tpl.body,    venue, tour, surveyLink),
+        tplId:   tpl.id,
+      }
+    }
+    // Fallback if no templates exist
+    const artist   = tour?.artist || '[Artist]'
+    const greeting = venue.contactName ? `Hi ${venue.contactName},` : `Hi ${venue.venueName} Team,`
+    return {
+      subject: `Upcoming Performance at ${venue.venueName}`,
+      body: `${greeting}\n\nWe're reaching out about an upcoming performance at ${venue.venueName}.\n\n${artist} will be performing on ${fmtDate(venue.showDate)} at ${fmtTime(venue.showTime)}.\n\nPlease fill out our venue survey:\n\n${surveyLink || '[Add survey link in Settings]'}\n\nBest,\n[Your Name]\nArtist Management`,
+      tplId: null,
+    }
+  }
 
-To help us prepare and make this the best possible show, we'd love for your team to fill out our venue survey covering sound requirements, load-in logistics, and a few quick questions:
-
-${surveyLink || '[Add your Google Form survey link in Settings]'}
-
-Don't hesitate to reach out with any questions — we're looking forward to working with you!
-
-Best,
-[Your Name]
-Artist Management`
-}
-
-export default function EmailModal({ venue, tour, surveyLink, accessToken, onReAuth, onSent, onClose }) {
+  const initial = buildInitial()
   const [to,      setTo]      = useState(venue.contactEmail || '')
-  const [subject, setSubject] = useState(`Upcoming Performance at ${venue.venueName}`)
-  const [body,    setBody]    = useState(() => buildBody(venue, tour, surveyLink))
+  const [subject, setSubject] = useState(initial.subject)
+  const [body,    setBody]    = useState(initial.body)
   const [sending, setSending] = useState(false)
   const [sent,    setSent]    = useState(false)
   const [error,   setError]   = useState('')
+  const [showTpls, setShowTpls] = useState(false)
+
+  const applyTemplate = (tpl) => {
+    setSubject(render(tpl.subject, venue, tour, surveyLink))
+    setBody(render(tpl.body, venue, tour, surveyLink))
+    setShowTpls(false)
+  }
 
   const send = async () => {
     if (!to) { setError('Please enter a recipient email.'); return }
@@ -60,6 +86,33 @@ export default function EmailModal({ venue, tour, surveyLink, accessToken, onReA
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         <div className="sheet-body">
+          {/* Template switcher */}
+          {templates?.length > 0 && (
+            <div style={{ marginBottom: '12px' }}>
+              <button
+                className="btn-sm-ghost"
+                style={{ width:'100%', textAlign:'left', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px' }}
+                onClick={() => setShowTpls(v => !v)}
+              >
+                <span>📋 Switch Template</span>
+                <span style={{ fontSize:'11px' }}>{showTpls ? '▲' : '▼'}</span>
+              </button>
+              {showTpls && (
+                <div style={{ background:'var(--bg)', borderRadius:'0 0 10px 10px', overflow:'hidden', border:'1px solid var(--border)', borderTop:'none' }}>
+                  {templates.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => applyTemplate(t)}
+                      style={{ display:'block', width:'100%', padding:'11px 14px', textAlign:'left', border:'none', background:'none', cursor:'pointer', fontSize:'14px', borderBottom:'1px solid var(--border)' }}
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="email-meta">
             <div className="email-meta-row">
               <span className="email-label">To</span>
@@ -70,7 +123,8 @@ export default function EmailModal({ venue, tour, surveyLink, accessToken, onReA
               <input className="email-meta-input" type="text" value={subject} onChange={e => setSubject(e.target.value)} />
             </div>
           </div>
-          <textarea className="email-body" value={body} onChange={e => setBody(e.target.value)} rows={16} />
+          <textarea className="email-body" value={body} onChange={e => setBody(e.target.value)} rows={14} />
+
           {error && (
             <div className="alert-error">
               {error}
