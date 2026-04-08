@@ -1,0 +1,1 @@
+{\n  "dependencies": {\n    "nodemailer": "^6.9.15",\n    "googleapis": "^144.0.0"\n  }\n}\n
