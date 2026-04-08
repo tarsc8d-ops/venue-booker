@@ -9,9 +9,13 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: '{}' }
 
   try {
-    const { to, subject, body, access_token } = JSON.parse(event.body)
+    const payload = JSON.parse(event.body)
+    const { to, subject, body } = payload
+    // Accept both camelCase (from GIS flow) and snake_case (from callback flow)
+    const token = payload.accessToken || payload.access_token
+
     if (!to || !subject || !body) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Missing to, subject, or body' }) }
-    if (!access_token) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'TOKEN_EXPIRED' }) }
+    if (!token) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'No access token. Please sign in.' }) }
 
     // Build RFC 2822 message and base64url-encode it
     const raw = Buffer.from(
@@ -20,11 +24,11 @@ exports.handler = async (event) => {
 
     const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ raw }),
     })
 
-    if (res.status === 401) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'TOKEN_EXPIRED', code: 'TOKEN_EXPIRED' }) }
+    if (res.status === 401) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'invalid_token — session expired' }) }
 
     const data = await res.json()
     if (!res.ok) throw new Error(data.error?.message || 'Gmail API error')
