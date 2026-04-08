@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer')
+const { google } = require('googleapis')
 
 exports.handler = async (event) => {
   const headers = {
@@ -7,47 +7,42 @@ exports.handler = async (event) => {
     'Content-Type': 'application/json',
   }
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' }
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
-  }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: '{}' }
 
   try {
-    const { to, subject, body } = JSON.parse(event.body)
+    const { to, subject, body, accessToken } = JSON.parse(event.body)
 
     if (!to || !subject || !body) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields: to, subject, body' }) }
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing to, subject, or body.' }) }
+    }
+    if (!accessToken) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'No Google access token provided. Please sign in.' }) }
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: process.env.GMAIL_USER,
-        clientId: process.env.GMAIL_CLIENT_ID,
-        clientSecret: process.env.GMAIL_CLIENT_SECRET,
-        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-      },
-    })
+    // Use the signed-in user's access token — no server-side secrets needed for sending
+    const oauth2Client = new google.auth.OAuth2()
+    oauth2Client.setCredentials({ access_token: accessToken })
 
-    await transporter.sendMail({
-      from: `"Artist Management" <${process.env.GMAIL_USER}>`,
-      to,
-      subject,
-      text: body,
-      html: body.split('\n').map(line => `<p>${line}</p>`).join(''),
-    })
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ success: true, message: 'Email sent successfully' }),
-    }
+    // Build RFC 2822 email message
+    const messageParts = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: quoted-printable',
+      '',
+      body,
+    ]
+    const raw = Buffer.from(messageParts.join('\r\n')).toString('base64url')
+
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw } })
+
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
   } catch (error) {
-    console.error('send-email error:', error)
+    console.error('send-email error:', error.message)
     return {
       statusCode: 500,
       headers,
