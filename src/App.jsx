@@ -1,135 +1,176 @@
-import { useState, useEffect } from 'react'
-import Dashboard from './components/Dashboard'
-import AddVenueModal from './components/AddVenueModal'
+import { useState, useEffect, useCallback } from 'react'
+import LoginScreen from './components/LoginScreen'
+import TourList from './components/TourList'
+import VenueList from './components/VenueList'
+import TourModal from './components/TourModal'
+import VenueModal from './components/VenueModal'
 import EmailModal from './components/EmailModal'
-import SurveyResultsModal from './components/SurveyResultsModal'
+import SurveyModal from './components/SurveyModal'
+import SettingsModal from './components/SettingsModal'
 
-const STORAGE_KEY = 'venue_booker_venues'
+const GIS_SCOPES = [
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+].join(' ')
+
+const load = (key, fallback) => {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback }
+  catch { return fallback }
+}
 
 export default function App() {
-  const [venues, setVenues] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      return saved ? JSON.parse(saved) : []
-    } catch { return [] }
-  })
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [editingVenue, setEditingVenue] = useState(null)
-  const [emailVenue, setEmailVenue] = useState(null)
-  const [resultsVenue, setResultsVenue] = useState(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [artistName, setArtistName] = useState(() => localStorage.getItem('vb_artist') || '')
+  const [gisReady, setGisReady] = useState(false)
+  const [auth, setAuth]     = useState(() => load('vb_auth', null))
+  const [tours, setTours]   = useState(() => load('vb_tours', []))
+  const [venues, setVenues] = useState(() => load('vb_venues', []))
   const [surveyLink, setSurveyLink] = useState(() => localStorage.getItem('vb_survey') || '')
 
+  const [currentTourId, setCurrentTourId] = useState(null)
+  const [modal, setModal] = useState(null) // { type, data }
+
+  useEffect(() => { localStorage.setItem('vb_tours', JSON.stringify(tours)) }, [tours])
+  useEffect(() => { localStorage.setItem('vb_venues', JSON.stringify(venues)) }, [venues])
+
+  // Load Google Identity Services
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(venues))
-  }, [venues])
+    const s = document.createElement('script')
+    s.src = 'https://accounts.google.com/gsi/client'
+    s.async = true
+    s.onload = () => setGisReady(true)
+    document.head.appendChild(s)
+  }, [])
 
-  const addVenue = (data) => {
-    setVenues(prev => [...prev, { ...data, id: Date.now(), status: 'pending', createdAt: new Date().toISOString() }])
+  const signIn = useCallback(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!window.google || !clientId) {
+      alert('Add VITE_GOOGLE_CLIENT_ID to your Netlify environment variables to enable Google sign-in.')
+      return
+    }
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: GIS_SCOPES,
+      callback: async (resp) => {
+        if (resp.error) { console.error('OAuth error:', resp); return }
+        try {
+          const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${resp.access_token}` }
+          })
+          const user = await r.json()
+          const authData = {
+            accessToken: resp.access_token,
+            email: user.email,
+            name: user.name || user.email,
+            picture: user.picture,
+            expiresAt: Date.now() + resp.expires_in * 1000,
+          }
+          setAuth(authData)
+          localStorage.setItem('vb_auth', JSON.stringify(authData))
+        } catch (e) { console.error('Failed to get user info:', e) }
+      },
+    })
+    client.requestAccessToken()
+  }, [gisReady])
+
+  const signOut = () => {
+    localStorage.removeItem('vb_auth')
+    setAuth(null)
+    setCurrentTourId(null)
+    setModal(null)
   }
 
-  const updateVenue = (id, updates) => {
-    setVenues(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v))
+  const getAccessToken = useCallback(() => {
+    if (!auth?.accessToken) return null
+    // Warn if expiring within 2 min
+    if (auth.expiresAt && Date.now() > auth.expiresAt - 120000) return null
+    return auth.accessToken
+  }, [auth])
+
+  // ── Tours CRUD ──
+  const addTour    = (d) => setTours(t => [...t, { ...d, id: Date.now(), createdAt: new Date().toISOString() }])
+  const updateTour = (id, d) => setTours(t => t.map(x => x.id === id ? { ...x, ...d } : x))
+  const deleteTour = (id) => {
+    setTours(t => t.filter(x => x.id !== id))
+    setVenues(v => v.filter(x => x.tourId !== id))
+    if (currentTourId === id) setCurrentTourId(null)
   }
 
-  const deleteVenue = (id) => setVenues(prev => prev.filter(v => v.id !== id))
-
+  // ── Venues CRUD ──
+  const addVenue    = (d) => setVenues(v => [...v, { ...d, id: Date.now(), status: 'pending', createdAt: new Date().toISOString() }])
+  const updateVenue = (id, d) => setVenues(v => v.map(x => x.id === id ? { ...x, ...d } : x))
+  const deleteVenue = (id) => setVenues(v => v.filter(x => x.id !== id))
   const markEmailSent = (id) => updateVenue(id, { status: 'email_sent', emailSentAt: new Date().toISOString() })
 
+  const close = () => setModal(null)
+  const currentTour   = tours.find(t => t.id === currentTourId)
+  const currentVenues = venues.filter(v => v.tourId === currentTourId)
+
+  if (!auth) return <LoginScreen onSignIn={signIn} loading={!gisReady} />
+
   return (
-    <div>
-      {/* Header */}
-      <header className="app-header">
-        <div className="header-left">
-          <div className="logo">🎵 VenueBooker</div>
-          <span className="tagline">Artist Management Platform</span>
-        </div>
-        <div className="header-right">
-          <button className="btn btn-ghost" onClick={() => setSettingsOpen(true)}>⚙️ Settings</button>
-          <button className="btn btn-primary" onClick={() => { setEditingVenue(null); setShowAddModal(true) }}>+ Add Venue</button>
-        </div>
-      </header>
-
-      {/* Settings Modal */}
-      {settingsOpen && (
-        <div className="modal-overlay" onClick={() => setSettingsOpen(false)}>
-          <div className="modal modal-medium" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>⚙️ Settings</h2>
-              <button className="close-btn" onClick={() => setSettingsOpen(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Artist / Act Name</label>
-                <input
-                  type="text"
-                  value={artistName}
-                  onChange={e => { setArtistName(e.target.value); localStorage.setItem('vb_artist', e.target.value) }}
-                  placeholder="e.g. DJ Marcus, The Midnight Collective"
-                />
-              </div>
-              <div className="form-group">
-                <label>Google Form Survey Link</label>
-                <input
-                  type="url"
-                  value={surveyLink}
-                  onChange={e => { setSurveyLink(e.target.value); localStorage.setItem('vb_survey', e.target.value) }}
-                  placeholder="https://forms.gle/..."
-                />
-              </div>
-              <p className="settings-note">
-                📌 These auto-fill your outgoing emails. Gmail & Google Sheets credentials
-                are configured via Netlify Environment Variables — see README for setup.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-primary" onClick={() => setSettingsOpen(false)}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main */}
-      <main className="app-main">
-        <Dashboard
+    <div className="app">
+      {currentTourId ? (
+        <VenueList
+          tour={currentTour}
+          venues={currentVenues}
+          onBack={() => setCurrentTourId(null)}
+          onAddVenue={() => setModal({ type: 'venue', data: null })}
+          onEditVenue={(v) => setModal({ type: 'venue', data: v })}
+          onDeleteVenue={deleteVenue}
+          onSendEmail={(v) => setModal({ type: 'email', data: v })}
+          onViewSurvey={(v) => setModal({ type: 'survey', data: v })}
+        />
+      ) : (
+        <TourList
+          tours={tours}
           venues={venues}
-          onAdd={() => { setEditingVenue(null); setShowAddModal(true) }}
-          onEdit={(v) => { setEditingVenue(v); setShowAddModal(true) }}
-          onDelete={deleteVenue}
-          onSendEmail={setEmailVenue}
-          onViewResults={setResultsVenue}
-        />
-      </main>
-
-      {/* Modals */}
-      {showAddModal && (
-        <AddVenueModal
-          venue={editingVenue}
-          defaultArtist={artistName}
-          onSave={(data) => {
-            if (editingVenue) updateVenue(editingVenue.id, data)
-            else addVenue(data)
-            setShowAddModal(false)
-          }}
-          onClose={() => setShowAddModal(false)}
+          auth={auth}
+          onSelectTour={setCurrentTourId}
+          onAddTour={() => setModal({ type: 'tour', data: null })}
+          onEditTour={(t) => setModal({ type: 'tour', data: t })}
+          onDeleteTour={deleteTour}
+          onOpenSettings={() => setModal({ type: 'settings' })}
         />
       )}
 
-      {emailVenue && (
+      {modal?.type === 'tour' && (
+        <TourModal
+          tour={modal.data}
+          onSave={(d) => { modal.data ? updateTour(modal.data.id, d) : addTour(d); close() }}
+          onDelete={modal.data ? () => { deleteTour(modal.data.id); close() } : null}
+          onClose={close}
+        />
+      )}
+      {modal?.type === 'venue' && (
+        <VenueModal
+          venue={modal.data}
+          tourId={currentTourId}
+          defaultArtist={currentTour?.artist}
+          onSave={(d) => { modal.data ? updateVenue(modal.data.id, d) : addVenue(d); close() }}
+          onClose={close}
+        />
+      )}
+      {modal?.type === 'email' && (
         <EmailModal
-          venue={emailVenue}
-          artistName={artistName}
+          venue={modal.data}
+          tour={currentTour}
           surveyLink={surveyLink}
-          onSent={() => { markEmailSent(emailVenue.id); setEmailVenue(null) }}
-          onClose={() => setEmailVenue(null)}
+          accessToken={getAccessToken()}
+          onReAuth={signIn}
+          onSent={() => { markEmailSent(modal.data.id); close() }}
+          onClose={close}
         />
       )}
-
-      {resultsVenue && (
-        <SurveyResultsModal
-          venue={resultsVenue}
-          onClose={() => setResultsVenue(null)}
+      {modal?.type === 'survey' && (
+        <SurveyModal venue={modal.data} onClose={close} />
+      )}
+      {modal?.type === 'settings' && (
+        <SettingsModal
+          auth={auth}
+          surveyLink={surveyLink}
+          onSurveyLinkChange={(v) => { setSurveyLink(v); localStorage.setItem('vb_survey', v) }}
+          onSignOut={signOut}
+          onClose={close}
         />
       )}
     </div>
