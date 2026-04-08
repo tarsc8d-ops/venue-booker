@@ -11,6 +11,8 @@ import BulkEmailModal from './components/BulkEmailModal'
 import Drawer from './components/Drawer'
 import SavedVenuesSheet from './components/SavedVenuesSheet'
 import SavedArtistsSheet from './components/SavedArtistsSheet'
+import EmailTemplatesSheet from './components/EmailTemplatesSheet'
+import SurveyLinkSheet from './components/SurveyLinkSheet'
 
 const GIS_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
@@ -53,6 +55,7 @@ export default function App() {
   const [tours, setTours]       = useState(() => load('vb_tours', []))
   const [venues, setVenues]     = useState(() => load('vb_venues', []))
   const [surveyLink, setSurveyLink]           = useState(() => localStorage.getItem('vb_survey') || '')
+  const [sheetId, setSheetId]                 = useState(() => localStorage.getItem('vb_sheet_id') || '')
   const [customTemplates, setCustomTemplates] = useState(() => load('vb_templates', []))
   const [savedVenues, setSavedVenues]         = useState(() => load('vb_saved_venues', []))
   const [savedArtists, setSavedArtists]       = useState(() => load('vb_saved_artists', []))
@@ -60,8 +63,11 @@ export default function App() {
   const [currentTourId, setCurrentTourId] = useState(null)
   const [modal, setModal]                 = useState(null)
   const [drawerOpen, setDrawerOpen]       = useState(false)
-  const [showSavedVenues, setShowSavedVenues]   = useState(false)
-  const [showSavedArtists, setShowSavedArtists] = useState(false)
+  // Standalone sheet visibility
+  const [showSavedVenues,   setShowSavedVenues]   = useState(false)
+  const [showSavedArtists,  setShowSavedArtists]  = useState(false)
+  const [showTemplates,     setShowTemplates]     = useState(false)
+  const [showSurveyLink,    setShowSurveyLink]    = useState(false)
 
   useEffect(() => { localStorage.setItem('vb_tours',         JSON.stringify(tours))          }, [tours])
   useEffect(() => { localStorage.setItem('vb_venues',        JSON.stringify(venues))         }, [venues])
@@ -112,10 +118,7 @@ export default function App() {
 
   const signOut = () => {
     localStorage.removeItem('vb_auth')
-    setAuth(null)
-    setCurrentTourId(null)
-    setModal(null)
-    setDrawerOpen(false)
+    setAuth(null); setCurrentTourId(null); setModal(null); setDrawerOpen(false)
   }
 
   const getAccessToken = useCallback(() => {
@@ -135,7 +138,6 @@ export default function App() {
 
   // Venues
   const addVenue = (d) => {
-    // If _saveToLib flag is set, also add to savedVenues library
     const { _saveToLib, ...venueData } = d
     setVenues(v => [...v, { ...venueData, id: Date.now(), status: 'pending', createdAt: new Date().toISOString() }])
     if (_saveToLib) {
@@ -151,20 +153,25 @@ export default function App() {
   const saveTemplate   = (t) => setCustomTemplates(prev => { const exists = prev.find(x => x.id === t.id); return exists ? prev.map(x => x.id === t.id ? t : x) : [...prev, t] })
   const deleteTemplate = (id) => setCustomTemplates(prev => prev.filter(x => x.id !== id))
 
-  // Saved Venues library
-  const saveSavedVenue   = (v) => setSavedVenues(prev => { const exists = prev.find(x => x.id === v.id); return exists ? prev.map(x => x.id === v.id ? v : x) : [...prev, { ...v, id: `sv_${Date.now()}` }] })
+  // Saved Venues
+  const saveSavedVenue   = (v) => setSavedVenues(prev => { const e = prev.find(x => x.id === v.id); return e ? prev.map(x => x.id === v.id ? v : x) : [...prev, { ...v, id: `sv_${Date.now()}` }] })
   const deleteSavedVenue = (id) => setSavedVenues(prev => prev.filter(x => x.id !== id))
 
-  // Saved Artists library
-  const saveSavedArtist   = (a) => setSavedArtists(prev => { const exists = prev.find(x => x.id === a.id); return exists ? prev.map(x => x.id === a.id ? a : x) : [...prev, { ...a, id: `sa_${Date.now()}` }] })
+  // Saved Artists
+  const saveSavedArtist   = (a) => setSavedArtists(prev => { const e = prev.find(x => x.id === a.id); return e ? prev.map(x => x.id === a.id ? a : x) : [...prev, { ...a, id: `sa_${Date.now()}` }] })
   const deleteSavedArtist = (id) => setSavedArtists(prev => prev.filter(x => x.id !== id))
 
-  // Drawer navigation
+  // Survey link + sheet id persistence
+  const handleSurveyLinkChange = (v) => { setSurveyLink(v); localStorage.setItem('vb_survey', v) }
+  const handleSheetIdChange    = (v) => { setSheetId(v);    localStorage.setItem('vb_sheet_id', v) }
+
+  // Drawer routing
   const handleDrawerNav = (key) => {
     if (key === 'saved-venues')  { setShowSavedVenues(true);  return }
     if (key === 'saved-artists') { setShowSavedArtists(true); return }
-    if (key === 'templates')     { setModal({ type: 'settings', tab: 'templates' }); return }
-    if (key === 'settings')      { setModal({ type: 'settings', tab: 'account' }); return }
+    if (key === 'templates')     { setShowTemplates(true);    return }
+    if (key === 'survey')        { setShowSurveyLink(true);   return }
+    if (key === 'settings')      { setModal({ type: 'settings' }); return }
   }
 
   const close = () => setModal(null)
@@ -175,20 +182,11 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Slide-out Drawer */}
-      <Drawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        auth={auth}
-        onNav={handleDrawerNav}
-        onSignOut={signOut}
-      />
+      <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} auth={auth} onNav={handleDrawerNav} onSignOut={signOut} />
 
       {currentTourId ? (
         <VenueList
-          tour={currentTour}
-          venues={currentVenues}
-          templates={allTemplates}
+          tour={currentTour} venues={currentVenues} templates={allTemplates}
           onBack={() => setCurrentTourId(null)}
           onAddVenue={() => setModal({ type: 'venue', data: null })}
           onEditVenue={(v) => setModal({ type: 'venue', data: v })}
@@ -199,95 +197,61 @@ export default function App() {
         />
       ) : (
         <TourList
-          tours={tours}
-          venues={venues}
-          auth={auth}
+          tours={tours} venues={venues} auth={auth}
           onSelectTour={setCurrentTourId}
           onAddTour={() => setModal({ type: 'tour', data: null })}
           onEditTour={(t) => setModal({ type: 'tour', data: t })}
           onDeleteTour={deleteTour}
           onOpenDrawer={() => setDrawerOpen(true)}
-          onOpenSettings={() => setModal({ type: 'settings', tab: 'account' })}
+          onOpenSettings={() => setModal({ type: 'settings' })}
         />
       )}
 
-      {/* Modals */}
       {modal?.type === 'tour' && (
-        <TourModal
-          tour={modal.data}
-          templates={allTemplates}
-          savedArtists={savedArtists}
+        <TourModal tour={modal.data} templates={allTemplates} savedArtists={savedArtists}
           onSave={(d) => { modal.data ? updateTour(modal.data.id, d) : addTour(d); close() }}
           onDelete={modal.data ? () => { deleteTour(modal.data.id); close() } : null}
-          onClose={close}
-        />
+          onClose={close} />
       )}
       {modal?.type === 'venue' && (
-        <VenueModal
-          venue={modal.data}
-          tourId={currentTourId}
-          savedVenues={savedVenues}
+        <VenueModal venue={modal.data} tourId={currentTourId} savedVenues={savedVenues}
           onSave={(d) => { modal.data ? updateVenue(modal.data.id, d) : addVenue(d); close() }}
-          onClose={close}
-        />
+          onClose={close} />
       )}
       {modal?.type === 'email' && (
-        <EmailModal
-          venue={modal.data}
-          tour={currentTour}
-          templates={allTemplates}
-          surveyLink={surveyLink}
-          accessToken={getAccessToken()}
-          onReAuth={signIn}
-          onSent={() => { markEmailSent(modal.data.id); close() }}
-          onClose={close}
-        />
+        <EmailModal venue={modal.data} tour={currentTour} templates={allTemplates}
+          surveyLink={surveyLink} accessToken={getAccessToken()}
+          onReAuth={signIn} onSent={() => { markEmailSent(modal.data.id); close() }} onClose={close} />
       )}
       {modal?.type === 'bulk' && (
-        <BulkEmailModal
-          venues={modal.data}
-          tour={currentTour}
-          templates={allTemplates}
-          surveyLink={surveyLink}
-          accessToken={getAccessToken()}
-          onReAuth={signIn}
-          onSent={(ids) => { ids.forEach(id => markEmailSent(id)); close() }}
-          onClose={close}
-        />
+        <BulkEmailModal venues={modal.data} tour={currentTour} templates={allTemplates}
+          surveyLink={surveyLink} accessToken={getAccessToken()}
+          onReAuth={signIn} onSent={(ids) => { ids.forEach(id => markEmailSent(id)); close() }} onClose={close} />
       )}
-      {modal?.type === 'survey' && (
-        <SurveyModal venue={modal.data} onClose={close} />
-      )}
+      {modal?.type === 'survey' && <SurveyModal venue={modal.data} onClose={close} />}
       {modal?.type === 'settings' && (
-        <SettingsModal
-          auth={auth}
-          surveyLink={surveyLink}
-          onSurveyLinkChange={(v) => { setSurveyLink(v); localStorage.setItem('vb_survey', v) }}
-          customTemplates={customTemplates}
-          defaultTemplates={DEFAULT_TEMPLATES}
-          onSaveTemplate={saveTemplate}
-          onDeleteTemplate={deleteTemplate}
-          onSignOut={signOut}
-          onClose={close}
-        />
+        <SettingsModal auth={auth} onSignOut={signOut} onClose={close} />
       )}
 
-      {/* Library sheets */}
+      {/* Standalone library / config sheets */}
       {showSavedVenues && (
-        <SavedVenuesSheet
-          savedVenues={savedVenues}
-          onSave={saveSavedVenue}
-          onDelete={deleteSavedVenue}
-          onClose={() => setShowSavedVenues(false)}
-        />
+        <SavedVenuesSheet savedVenues={savedVenues} onSave={saveSavedVenue} onDelete={deleteSavedVenue} onClose={() => setShowSavedVenues(false)} />
       )}
       {showSavedArtists && (
-        <SavedArtistsSheet
-          savedArtists={savedArtists}
-          onSave={saveSavedArtist}
-          onDelete={deleteSavedArtist}
-          onClose={() => setShowSavedArtists(false)}
-        />
+        <SavedArtistsSheet savedArtists={savedArtists} onSave={saveSavedArtist} onDelete={deleteSavedArtist} onClose={() => setShowSavedArtists(false)} />
+      )}
+      {showTemplates && (
+        <EmailTemplatesSheet
+          customTemplates={customTemplates} defaultTemplates={DEFAULT_TEMPLATES}
+          onSaveTemplate={saveTemplate} onDeleteTemplate={deleteTemplate}
+          onClose={() => setShowTemplates(false)} />
+      )}
+      {showSurveyLink && (
+        <SurveyLinkSheet
+          surveyLink={surveyLink} sheetId={sheetId}
+          onSurveyLinkChange={handleSurveyLinkChange}
+          onSheetIdChange={handleSheetIdChange}
+          onClose={() => setShowSurveyLink(false)} />
       )}
     </div>
   )
