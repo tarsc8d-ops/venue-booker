@@ -1,9 +1,10 @@
 export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
   const items = [
-    { icon: '🏟️', label: 'Saved Venues',    key: 'saved-venues'  },
-    { icon: '🎤', label: 'Saved Artists',   key: 'saved-artists' },
-    { icon: '✉️', label: 'Email Templates', key: 'templates'     },
-    { icon: '⚙️', label: 'Settings',        key: 'settings'      },
+    { icon: '🏟️', label: 'Saved Venues',    key: 'saved-venues'   },
+    { icon: '🎤', label: 'Saved Artists',   key: 'saved-artists'  },
+    { icon: '✉️', label: 'Email Templates', key: 'templates'      },
+    { icon: '🔗', label: 'Survey Link',     key: 'survey'         },
+    { icon: '⚙️', label: 'Account',         key: 'settings'       },
   ]
 
   return (
