@@ -2,18 +2,18 @@ import { useState, useEffect } from 'react'
 
 const COLORS = ['#7C3AED','#2563EB','#059669','#D97706','#DC2626','#DB2777','#0891B2','#64748B']
 
-export default function TourModal({ tour, templates, onSave, onDelete, onClose }) {
+export default function TourModal({ tour, templates, savedArtists, onSave, onDelete, onClose }) {
   const [form, setForm] = useState({
     name: '', artist: '', description: '', color: COLORS[0], emailTemplateId: '',
   })
 
   useEffect(() => {
     if (tour) setForm({
-      name:             tour.name            || '',
-      artist:           tour.artist          || '',
-      description:      tour.description     || '',
-      color:            tour.color           || COLORS[0],
-      emailTemplateId:  tour.emailTemplateId || '',
+      name:            tour.name            || '',
+      artist:          tour.artist          || '',
+      description:     tour.description     || '',
+      color:           tour.color           || COLORS[0],
+      emailTemplateId: tour.emailTemplateId || '',
     })
   }, [tour])
 
@@ -32,9 +32,30 @@ export default function TourModal({ tour, templates, onSave, onDelete, onClose }
             <label>Tour Name *</label>
             <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Summer 2026 Tour" autoFocus />
           </div>
+
+          {/* Artist field with saved artist chips */}
           <div className="field">
             <label>Artist / Act</label>
-            <input type="text" value={form.artist} onChange={e => set('artist', e.target.value)} placeholder="Artist or group name" />
+            {savedArtists?.length > 0 && (
+              <div className="artist-chips-scroll" style={{ marginBottom: '8px' }}>
+                {savedArtists.map(a => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className={`artist-chip ${form.artist === a.name ? 'selected' : ''}`}
+                    onClick={() => set('artist', form.artist === a.name ? '' : a.name)}
+                  >
+                    {a.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              value={form.artist}
+              onChange={e => set('artist', e.target.value)}
+              placeholder={savedArtists?.length > 0 ? 'Tap a chip above or type a name' : 'Artist or group name'}
+            />
           </div>
 
           {templates && templates.length > 0 && (
@@ -46,7 +67,7 @@ export default function TourModal({ tour, templates, onSave, onDelete, onClose }
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
-              <p style={{ fontSize:'12px', color:'var(--text-3)', marginTop:'5px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '5px' }}>
                 Pre-fills emails when sending to venues in this tour.
               </p>
             </div>
@@ -70,7 +91,7 @@ export default function TourModal({ tour, templates, onSave, onDelete, onClose }
           </div>
           {tour && onDelete && (
             <button type="button"
-              style={{ background:'#FEE2E2', color:'#DC2626', border:'none', borderRadius:'10px', padding:'12px 16px', width:'100%', fontSize:'14px', fontWeight:'600', cursor:'pointer', marginTop:'8px' }}
+              style={{ background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: '10px', padding: '12px 16px', width: '100%', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '8px' }}
               onClick={() => { if (confirm(`Delete "${tour.name}" and all its venues?`)) onDelete() }}
             >
               🗑️ Delete Tour
