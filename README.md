@@ -1,90 +1,79 @@
-# 🎵 VenueBooker
+# 🎵 VenueBooker v2
 
-Artist management tool for booking venues — send custom emails, track survey responses, and stay organized.
+Mobile-first artist management tool. Organize tours, send booking emails via Gmail, pull survey results from Google Sheets.
 
 ## Features
-
-- 📋 **Venue Dashboard** — track all venues with status, dates, contacts
-- ✉️ **Custom Email Sender** — auto-filled templates sent via Gmail API
-- 📊 **Survey Results** — pull responses from Google Sheets in real time
-- ⬇️ **CSV Export** — download survey results
-- 💾 **Local Storage** — all venue data saved in the browser
+- 🔐 **Sign in with Google** — uses your real Gmail to send emails
+- 🗺️ **Tours** — group venues by tour/run of shows
+- ✉️ **Custom Emails** — auto-filled templates, editable before sending
+- 📊 **Survey Results** — pull Google Sheets responses per venue
+- ✏️ **Full CRUD** — add, edit, delete tours and venues
+- 📱 **Mobile-first** — designed to use on your phone
 
 ---
 
-## Setup
+## Setup (2 env vars only)
 
-### 1. Clone & Install
+### Step 1 — Google Cloud Console
+1. Go to [console.cloud.google.com](https://console.cloud.google.com/)
+2. Create a project → Enable **Gmail API** + **Google Sheets API**
+3. Go to **APIs & Services → Credentials → Create OAuth 2.0 Client ID**
+   - Application type: **Web application**
+   - Authorized JavaScript origins: `https://venue-booker.netlify.app`
+   - Leave redirect URIs blank (uses GIS popup flow)
+4. Copy the **Client ID**
 
-```bash
-git clone https://github.com/tarsc8d-ops/venue-booker.git
-cd venue-booker
-npm install
-```
-
-### 2. Gmail OAuth2 Credentials
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project → Enable **Gmail API**
-3. Create **OAuth 2.0 Client ID** (Desktop app type)
-4. Use [OAuth Playground](https://developers.google.com/oauthplayground/) to get a refresh token:
-   - Authorize `https://mail.google.com/`
-   - Exchange for tokens → copy the **Refresh Token**
-
-### 3. Google Sheets (Survey Results)
-
-1. Create a **Google Form** — this auto-generates a linked Google Sheet
-2. In Google Cloud Console → **Service Accounts** → create one, download the JSON key
-3. Share your Google Sheet with the service account email address
-4. Copy the **Sheet ID** from the URL: `https://docs.google.com/spreadsheets/d/SHEET_ID_HERE/`
-
-### 4. Netlify Environment Variables
-
-In Netlify → Site Settings → Environment Variables, add:
+### Step 2 — Netlify Environment Variables
+In Netlify → **Site configuration → Environment variables**, add:
 
 | Variable | Value |
 |---|---|
-| `GMAIL_USER` | your-email@gmail.com |
-| `GMAIL_CLIENT_ID` | from Google Cloud OAuth credentials |
-| `GMAIL_CLIENT_SECRET` | from Google Cloud OAuth credentials |
-| `GMAIL_REFRESH_TOKEN` | from OAuth Playground |
-| `GOOGLE_SHEETS_ID` | ID from your Google Sheet URL |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | service account email |
-| `GOOGLE_SERVICE_ACCOUNT_KEY` | private key from service account JSON (paste the full key, newlines as `\n`) |
+| `VITE_GOOGLE_CLIENT_ID` | your `...apps.googleusercontent.com` Client ID |
 
-### 5. Deploy to Netlify
+That's it. No client secret, no service account, no refresh tokens.
 
-Connect this repo to Netlify — it will auto-detect the build settings from `netlify.toml`.
+### Step 3 — App Settings (after deploy)
+Open the app → tap **Settings**:
+- Paste your **Google Form survey link** (included in every email)
+- Paste your **Google Sheet ID** (for viewing survey responses)
 
-Or deploy via Netlify CLI:
-```bash
-npm install -g netlify-cli
-netlify deploy --prod
-```
+Your Sheet ID is in the URL: `docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`
 
 ---
 
-## Local Development
+## How it works
 
-```bash
-npm run dev        # Vite dev server (port 5173)
-netlify dev        # Full stack with Netlify functions (port 8888)
-```
+**Sign-in:** Uses Google Identity Services (GIS) popup — you authorize once per session (~1 hour). No passwords or tokens stored on any server.
+
+**Email sending:** Your Gmail access token is passed to a Netlify Function which calls the Gmail REST API. Emails come from your own Gmail address.
+
+**Survey results:** Your access token is also used to read your Google Sheet directly. Just make sure you're signed in with the same Google account that owns the Sheet.
 
 ---
 
-## App Settings
+## Local Dev
 
-Click **⚙️ Settings** in the top right to set:
-- **Artist / Act Name** — auto-fills outgoing email templates
-- **Google Form Survey Link** — included in every email
+```bash
+npm install
+npm run dev
+```
+
+For functions, you need [Netlify CLI](https://docs.netlify.com/cli/get-started/):
+```bash
+netlify dev
+```
+
+Add a `.env` file with:
+```
+VITE_GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+```
 
 ---
 
 ## Tech Stack
-
-- **Frontend**: React + Vite
-- **Hosting**: Netlify
-- **Email**: Gmail API via Nodemailer (Netlify Function)
-- **Survey Data**: Google Sheets API (Netlify Function)
-- **Storage**: Browser localStorage
+- React + Vite (frontend)
+- Netlify (hosting + serverless functions)
+- Gmail REST API (email)
+- Google Sheets REST API (survey results)
+- Google Identity Services (OAuth popup)
+- localStorage (venue/tour data)
