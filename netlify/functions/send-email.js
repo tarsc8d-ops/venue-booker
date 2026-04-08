@@ -1,52 +1,36 @@
-const { google } = require('googleapis')
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json',
+}
 
 exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  }
-
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: '{}' }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' }
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: '{}' }
 
   try {
-    const { to, subject, body, accessToken } = JSON.parse(event.body)
+    const { to, subject, body, access_token } = JSON.parse(event.body)
+    if (!to || !subject || !body) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Missing to, subject, or body' }) }
+    if (!access_token) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'TOKEN_EXPIRED' }) }
 
-    if (!to || !subject || !body) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing to, subject, or body.' }) }
-    }
-    if (!accessToken) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: 'No Google access token provided. Please sign in.' }) }
-    }
+    // Build RFC 2822 message and base64url-encode it
+    const raw = Buffer.from(
+      [`To: ${to}`, `Subject: ${subject}`, 'Content-Type: text/plain; charset=utf-8', '', body].join('\r\n')
+    ).toString('base64url')
 
-    // Use the signed-in user's access token — no server-side secrets needed for sending
-    const oauth2Client = new google.auth.OAuth2()
-    oauth2Client.setCredentials({ access_token: accessToken })
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw }),
+    })
 
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
+    if (res.status === 401) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'TOKEN_EXPIRED', code: 'TOKEN_EXPIRED' }) }
 
-    // Build RFC 2822 email message
-    const messageParts = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      'MIME-Version: 1.0',
-      'Content-Type: text/plain; charset=utf-8',
-      'Content-Transfer-Encoding: quoted-printable',
-      '',
-      body,
-    ]
-    const raw = Buffer.from(messageParts.join('\r\n')).toString('base64url')
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error?.message || 'Gmail API error')
 
-    await gmail.users.messages.send({ userId: 'me', requestBody: { raw } })
-
-    return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
-  } catch (error) {
-    console.error('send-email error:', error.message)
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ success: false, error: error.message }),
-    }
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ success: true, id: data.id }) }
+  } catch (err) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) }
   }
 }
