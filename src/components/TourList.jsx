@@ -7,7 +7,7 @@ const fmtShort = (d) => {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function TourList({ tours, venues, auth, onSelectTour, onAddTour, onEditTour, onDeleteTour, onOpenSettings }) {
+export default function TourList({ tours, venues, auth, onSelectTour, onAddTour, onEditTour, onDeleteTour, onOpenDrawer, onOpenSettings }) {
   const [search, setSearch] = useState('')
 
   const filtered = tours.filter(t =>
@@ -16,10 +16,10 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
     t.artist?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const venueCount = (id) => venues.filter(v => v.tourId === id).length
+  const venueCount     = (id) => venues.filter(v => v.tourId === id).length
   const contactedCount = (id) => venues.filter(v => v.tourId === id && v.status !== 'pending').length
   const nextShow = (id) => {
-    const today = new Date(); today.setHours(0,0,0,0)
+    const today = new Date(); today.setHours(0, 0, 0, 0)
     return venues
       .filter(v => v.tourId === id && v.showDate && new Date(v.showDate + 'T00:00:00') >= today)
       .sort((a, b) => new Date(a.showDate) - new Date(b.showDate))[0]
@@ -27,26 +27,29 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
 
   return (
     <div className="screen">
+      {/* Header: hamburger | centered title | avatar */}
       <div className="header">
-        <div className="header-left">
-          <span className="header-logo">🎵</span>
+        <button className="hamburger-btn" onClick={onOpenDrawer} aria-label="Open menu">
+          <span className="hamburger-icon">
+            <span /><span /><span />
+          </span>
+        </button>
+        <div className="header-center">
           <span className="header-title">VenueBooker</span>
         </div>
-        <div className="header-right">
-          <button className="icon-btn" onClick={onOpenSettings} aria-label="Settings">
-            {auth?.picture
-              ? <img src={auth.picture} className="avatar" alt={auth.name} onError={e => { e.target.style.display='none' }} />
-              : <span>⚙️</span>
-            }
-          </button>
-        </div>
+        <button className="icon-btn" onClick={onOpenSettings} aria-label="Settings" style={{ width: '40px' }}>
+          {auth?.picture
+            ? <img src={auth.picture} className="avatar" alt={auth.name} onError={e => { e.target.style.display = 'none' }} />
+            : <span>⚙️</span>
+          }
+        </button>
       </div>
 
       <div className="search-wrap">
         <div className="search-input-wrap">
           <span className="search-icon-inner">🔍</span>
           <input
-            className="search-input" type="search" placeholder="Search tours..."
+            className="search-input" type="search" placeholder="Search tours…"
             value={search} onChange={e => setSearch(e.target.value)}
           />
           {search && <button className="clear-btn" onClick={() => setSearch('')}>×</button>}
@@ -66,10 +69,10 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
         ) : (
           <div className="card-list">
             {filtered.map(tour => {
-              const count = venueCount(tour.id)
+              const count     = venueCount(tour.id)
               const contacted = contactedCount(tour.id)
-              const next = nextShow(tour.id)
-              const color = tour.color || COLORS[0]
+              const next      = nextShow(tour.id)
+              const color     = tour.color || COLORS[0]
               return (
                 <div key={tour.id} className="tour-card" onClick={() => onSelectTour(tour.id)}>
                   <div className="tour-card-bar" style={{ background: color }} />
