@@ -11,6 +11,7 @@ import SettingsModal from './components/SettingsModal'
 import BulkEmailModal from './components/BulkEmailModal'
 import Drawer from './components/Drawer'
 import DesktopSidebar from './components/DesktopSidebar'
+import DesktopSection from './components/DesktopSection'
 import SavedVenuesSheet from './components/SavedVenuesSheet'
 import SavedArtistsSheet from './components/SavedArtistsSheet'
 import EmailTemplatesSheet from './components/EmailTemplatesSheet'
@@ -51,11 +52,22 @@ export const DEFAULT_TEMPLATES = [
   },
 ]
 
+// Section keys that get full-page treatment on desktop
+const SECTION_KEYS = ['saved-venues', 'saved-artists', 'templates', 'survey', 'settings']
+
 export default function App() {
   const [gisReady, setGisReady] = useState(false)
   const [auth, setAuth]         = useState(() => ls.get('vb_auth', null))
   const [dbReady, setDbReady]   = useState(false)
   const [needsReAuth, setNeedsReAuth] = useState(false)
+
+  // Desktop detection — reactive to window resize
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   const [tours,           setTours]           = useState([])
   const [venues,          setVenues]          = useState([])
@@ -66,9 +78,12 @@ export default function App() {
   const [savedArtists,    setSavedArtists]    = useState([])
   const [surveyLinks,     setSurveyLinks]     = useState([])
 
-  const [currentTourId, setCurrentTourId] = useState(null)
-  const [modal,         setModal]         = useState(null)
-  const [drawerOpen,    setDrawerOpen]    = useState(false)
+  const [currentTourId,   setCurrentTourId]   = useState(null)
+  const [desktopSection,  setDesktopSection]  = useState(null) // active full-page section on desktop
+  const [modal,           setModal]           = useState(null)
+  const [drawerOpen,      setDrawerOpen]      = useState(false)
+
+  // Mobile-only sheet visibility
   const [showSavedVenues,  setShowSavedVenues]  = useState(false)
   const [showSavedArtists, setShowSavedArtists] = useState(false)
   const [showTemplates,    setShowTemplates]    = useState(false)
@@ -169,7 +184,7 @@ export default function App() {
     localStorage.removeItem('vb_auth')
     setAuth(null); setCurrentTourId(null); setModal(null)
     setDrawerOpen(false); setDbReady(false); setNeedsReAuth(false)
-    setTours([]); setVenues([])
+    setDesktopSection(null); setTours([]); setVenues([])
   }
 
   const getToken = useCallback(() => auth?.accessToken || null, [auth])
@@ -181,6 +196,7 @@ export default function App() {
     })
   }, [])
 
+  // ── Data mutations ───────────────────────────────────────────────────────
   const addTour = (d) => {
     const t = { ...d, id: `t_${Date.now()}`, createdAt: new Date().toISOString() }
     setTours(prev => [...prev, t]); persist(() => db.upsert('tours', t, getToken()))
@@ -217,48 +233,32 @@ export default function App() {
   const deleteVenue   = (id) => { setVenues(v => v.filter(x => x.id !== id)); persist(() => db.delete('venues', id, getToken())) }
   const markEmailSent = (id) => updateVenue(id, { status: 'email_sent', emailSentAt: new Date().toISOString() })
 
-  const saveTemplate = (t) => {
-    setCustomTemplates(prev => {
-      const e = prev.find(x => x.id === t.id)
-      persist(() => db.upsert('email_templates', t, getToken()))
-      return e ? prev.map(x => x.id === t.id ? t : x) : [...prev, t]
-    })
-  }
+  const saveTemplate   = (t) => { setCustomTemplates(prev => { const e = prev.find(x => x.id === t.id); persist(() => db.upsert('email_templates', t, getToken())); return e ? prev.map(x => x.id === t.id ? t : x) : [...prev, t] }) }
   const deleteTemplate = (id) => { setCustomTemplates(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('email_templates', id, getToken())) }
 
-  const saveSavedVenue = (v) => {
-    setSavedVenues(prev => {
-      const e = prev.find(x => x.id === v.id)
-      const entry = e ? v : { ...v, id: `sv_${Date.now()}` }
-      persist(() => db.upsert('saved_venues', entry, getToken()))
-      return e ? prev.map(x => x.id === v.id ? entry : x) : [...prev, entry]
-    })
-  }
+  const saveSavedVenue   = (v) => { setSavedVenues(prev => { const e = prev.find(x => x.id === v.id); const entry = e ? v : { ...v, id: `sv_${Date.now()}` }; persist(() => db.upsert('saved_venues', entry, getToken())); return e ? prev.map(x => x.id === v.id ? entry : x) : [...prev, entry] }) }
   const deleteSavedVenue = (id) => { setSavedVenues(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_venues', id, getToken())) }
 
-  const saveSavedArtist = (a) => {
-    setSavedArtists(prev => {
-      const e = prev.find(x => x.id === a.id)
-      const entry = e ? a : { ...a, id: `sa_${Date.now()}` }
-      persist(() => db.upsert('saved_artists', entry, getToken()))
-      return e ? prev.map(x => x.id === a.id ? entry : x) : [...prev, entry]
-    })
-  }
+  const saveSavedArtist   = (a) => { setSavedArtists(prev => { const e = prev.find(x => x.id === a.id); const entry = e ? a : { ...a, id: `sa_${Date.now()}` }; persist(() => db.upsert('saved_artists', entry, getToken())); return e ? prev.map(x => x.id === a.id ? entry : x) : [...prev, entry] }) }
   const deleteSavedArtist = (id) => { setSavedArtists(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_artists', id, getToken())) }
 
-  const saveSurveyLink = (l) => {
-    setSurveyLinks(prev => {
-      const e = prev.find(x => x.id === l.id)
-      const entry = e ? l : { ...l, id: `sl_${Date.now()}`, createdAt: new Date().toISOString() }
-      persist(() => db.upsert('survey_links', entry, getToken()))
-      return e ? prev.map(x => x.id === l.id ? entry : x) : [...prev, entry]
-    })
-  }
+  const saveSurveyLink   = (l) => { setSurveyLinks(prev => { const e = prev.find(x => x.id === l.id); const entry = e ? l : { ...l, id: `sl_${Date.now()}`, createdAt: new Date().toISOString() }; persist(() => db.upsert('survey_links', entry, getToken())); return e ? prev.map(x => x.id === l.id ? entry : x) : [...prev, entry] }) }
   const deleteSurveyLink = (id) => { setSurveyLinks(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('survey_links', id, getToken())) }
 
-  // Shared nav handler — used by both Drawer (mobile) and DesktopSidebar
+  // ── Navigation ───────────────────────────────────────────────────────────
   const handleNav = (key) => {
-    if (key === 'tours')         { setCurrentTourId(null); return }
+    if (key === 'tours') {
+      setCurrentTourId(null)
+      setDesktopSection(null)
+      return
+    }
+    if (isDesktop && SECTION_KEYS.includes(key)) {
+      // Desktop: open as full page in main content area
+      setDesktopSection(key)
+      setCurrentTourId(null) // leave any open tour
+      return
+    }
+    // Mobile: use bottom sheets
     if (key === 'saved-venues')  { setShowSavedVenues(true);  return }
     if (key === 'saved-artists') { setShowSavedArtists(true); return }
     if (key === 'templates')     { setShowTemplates(true);    return }
@@ -266,10 +266,16 @@ export default function App() {
     if (key === 'settings')      { setModal({ type: 'settings' }); return }
   }
 
+  // Clicking a tour on desktop clears any open section
+  const handleSelectTour = (id) => {
+    setDesktopSection(null)
+    setCurrentTourId(id)
+  }
+
   const close = () => setModal(null)
   const currentTour   = tours.find(t => t.id === currentTourId)
   const currentVenues = venues.filter(v => v.tourId === currentTourId)
-  const desktopPage   = currentTourId ? 'venues' : 'tours'
+  const sidebarPage   = desktopSection || (currentTourId ? 'venues' : 'tours')
 
   if (!auth) return <LoginScreen onSignIn={signIn} loading={!gisReady} />
 
@@ -297,12 +303,42 @@ export default function App() {
       {/* Mobile-only drawer */}
       <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} auth={auth} onNav={handleNav} onSignOut={signOut} />
 
-      {/* Desktop sidebar — hidden on mobile via CSS */}
-      <DesktopSidebar auth={auth} currentPage={desktopPage === 'tours' ? 'tours' : ''} onNav={handleNav} onSignOut={signOut} />
+      {/* Desktop sidebar */}
+      <DesktopSidebar auth={auth} currentPage={sidebarPage} onNav={handleNav} onSignOut={signOut} />
 
-      {/* Main content — wraps the screen on desktop */}
+      {/* Main content area */}
       <div className="desktop-main">
-        {currentTourId ? (
+        {/* Desktop: show section page when a sidebar item is active */}
+        {isDesktop && desktopSection ? (
+          <DesktopSection
+            section={desktopSection}
+            // Saved venues
+            savedVenues={savedVenues}
+            onSave={saveSavedVenue}
+            onDelete={deleteSavedVenue}
+            // Saved artists
+            savedArtists={savedArtists}
+            onSave={saveSavedVenue}   // overridden per-section inside DesktopSection
+            onDelete={deleteSavedVenue}
+            // For each section we pass all data; DesktopSection uses what it needs
+            savedVenuesSave={saveSavedVenue}
+            savedVenuesDelete={deleteSavedVenue}
+            savedArtistsSave={saveSavedArtist}
+            savedArtistsDelete={deleteSavedArtist}
+            // Templates
+            customTemplates={customTemplates}
+            defaultTemplates={DEFAULT_TEMPLATES}
+            onSaveTemplate={saveTemplate}
+            onDeleteTemplate={deleteTemplate}
+            // Survey links
+            surveyLinks={surveyLinks}
+            surveyLinksSave={saveSurveyLink}
+            surveyLinksDelete={deleteSurveyLink}
+            // Account
+            auth={auth}
+            onSignOut={signOut}
+          />
+        ) : currentTourId ? (
           <VenueList
             tour={currentTour} venues={currentVenues} templates={allTemplates} auth={auth}
             onBack={() => setCurrentTourId(null)}
@@ -317,16 +353,17 @@ export default function App() {
         ) : (
           <TourList
             tours={tours} venues={venues} auth={auth}
-            onSelectTour={setCurrentTourId}
+            onSelectTour={handleSelectTour}
             onAddTour={() => setModal({ type: 'tour', data: null })}
             onEditTour={(t) => setModal({ type: 'tour', data: t })}
             onDeleteTour={deleteTour}
             onOpenDrawer={() => setDrawerOpen(true)}
-            onOpenSettings={() => setModal({ type: 'settings' })}
+            onOpenSettings={() => isDesktop ? setDesktopSection('settings') : setModal({ type: 'settings' })}
           />
         )}
       </div>
 
+      {/* Modals */}
       {modal?.type === 'tour' && (
         <TourModal tour={modal.data} templates={allTemplates} savedArtists={savedArtists} surveyLinks={surveyLinks}
           onSave={(d) => { modal.data ? updateTour(modal.data.id, d) : addTour(d); close() }}
@@ -358,6 +395,7 @@ export default function App() {
       {modal?.type === 'survey' && <SurveyModal venue={modal.data} onClose={close} />}
       {modal?.type === 'settings' && <SettingsModal auth={auth} onSignOut={signOut} onClose={close} />}
 
+      {/* Mobile-only sheets */}
       {showSavedVenues  && <SavedVenuesSheet  savedVenues={savedVenues}   onSave={saveSavedVenue}   onDelete={deleteSavedVenue}   onClose={() => setShowSavedVenues(false)} />}
       {showSavedArtists && <SavedArtistsSheet savedArtists={savedArtists} onSave={saveSavedArtist}  onDelete={deleteSavedArtist}  onClose={() => setShowSavedArtists(false)} />}
       {showTemplates    && <EmailTemplatesSheet customTemplates={customTemplates} defaultTemplates={DEFAULT_TEMPLATES} onSaveTemplate={saveTemplate} onDeleteTemplate={deleteTemplate} onClose={() => setShowTemplates(false)} />}
