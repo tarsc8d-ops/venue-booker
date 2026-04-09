@@ -25,11 +25,11 @@ const fmtTime = (t) => {
   return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`
 }
 
-export default function VenueList({ tour, venues, templates, onBack, onAddVenue, onEditVenue, onDeleteVenue, onSendEmail, onViewSurvey, onBulkEmail }) {
-  const [search,     setSearch]     = useState('')
-  const [filter,     setFilter]     = useState('all')
-  const [expanded,   setExpanded]   = useState(null)
-  const [selectMode, setSelectMode] = useState(false)
+export default function VenueList({ tour, venues, templates, auth, onBack, onAddVenue, onEditVenue, onDeleteVenue, onSendEmail, onViewSurvey, onBulkEmail, onTestEmail }) {
+  const [search,      setSearch]      = useState('')
+  const [filter,      setFilter]      = useState('all')
+  const [expanded,    setExpanded]    = useState(null)
+  const [selectMode,  setSelectMode]  = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
 
   const counts = {
@@ -64,7 +64,7 @@ export default function VenueList({ tour, venues, templates, onBack, onAddVenue,
       <div className="header">
         {selectMode ? (
           <>
-            <button className="back-btn" onClick={clearSelect} style={{ fontSize:'16px', width:'56px' }}>Cancel</button>
+            <button className="back-btn" onClick={clearSelect} style={{ fontSize: '16px', width: '56px' }}>Cancel</button>
             <div className="header-center">
               <div className="header-title">
                 {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select Venues'}
@@ -72,7 +72,7 @@ export default function VenueList({ tour, venues, templates, onBack, onAddVenue,
             </div>
             <button
               onClick={selectAll}
-              style={{ fontSize:'14px', fontWeight:'600', color:'var(--accent)', border:'none', background:'none', cursor:'pointer', padding:'8px', width:'56px' }}
+              style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent)', border: 'none', background: 'none', cursor: 'pointer', padding: '8px', width: '56px' }}
             >
               All
             </button>
@@ -87,14 +87,37 @@ export default function VenueList({ tour, venues, templates, onBack, onAddVenue,
             <button
               className="icon-btn"
               onClick={() => { setSelectMode(true); setExpanded(null) }}
-              title="Select venues"
-              style={{ fontSize:'20px' }}
+              title="Select venues for bulk email"
+              style={{ fontSize: '20px' }}
             >
               ☑️
             </button>
           </>
         )}
       </div>
+
+      {/* Test Email Banner — always visible at top */}
+      {!selectMode && (
+        <button
+          onClick={onTestEmail}
+          style={{
+            width: '100%', padding: '10px 16px',
+            background: 'linear-gradient(135deg, #EDE9FE, #DBEAFE)',
+            border: 'none', borderBottom: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', gap: '10px',
+            cursor: 'pointer', flexShrink: 0, textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>🧪</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--accent)' }}>Send Test Email</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-2)' }}>
+              Send to yourself ({auth?.email || 'your Gmail'}) to preview the template
+            </div>
+          </div>
+          <span style={{ color: 'var(--accent)', fontSize: '18px', opacity: 0.6 }}>›</span>
+        </button>
+      )}
 
       {/* Stats strip */}
       <div className="stats-strip">
@@ -132,8 +155,8 @@ export default function VenueList({ tour, venues, templates, onBack, onAddVenue,
         ) : (
           <div className="card-list">
             {visible.map(venue => {
-              const st     = STATUS[venue.status] || STATUS.pending
-              const isOpen = !selectMode && expanded === venue.id
+              const st       = STATUS[venue.status] || STATUS.pending
+              const isOpen   = !selectMode && expanded === venue.id
               const isSelected = selectedIds.has(venue.id)
               const date = fmtDate(venue.showDate)
               const time = fmtTime(venue.showTime)
@@ -155,7 +178,7 @@ export default function VenueList({ tour, venues, templates, onBack, onAddVenue,
                         {venue.city && <span>{venue.city}</span>}
                         {venue.city && date && <span className="meta-sep">·</span>}
                         {date && <span>{date}{time ? ` at ${time}` : ''}</span>}
-                        {!venue.city && !date && <span style={{ color:'var(--text-3)' }}>No date set</span>}
+                        {!venue.city && !date && <span style={{ color: 'var(--text-3)' }}>No date set</span>}
                       </div>
                       {venue.contactName && (
                         <div className="venue-card-contact">
@@ -195,15 +218,15 @@ export default function VenueList({ tour, venues, templates, onBack, onAddVenue,
         <div className="bulk-bar">
           <button
             className="btn-primary"
-            style={{ width:'100%', padding:'15px', fontSize:'16px', borderRadius:'14px', boxShadow:'0 4px 20px rgba(124,58,237,0.4)' }}
+            style={{ width: '100%', padding: '15px', fontSize: '16px', borderRadius: '14px', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }}
             onClick={() => onBulkEmail(selectedVenues)}
           >
-            📤 Send Email to {selectedIds.size} Venue{selectedIds.size !== 1 ? 's' : ''}
+            Send Email to {selectedIds.size} Venue{selectedIds.size !== 1 ? 's' : ''}
           </button>
         </div>
       )}
 
-      {/* FAB — hidden in select mode */}
+      {/* FAB */}
       {!selectMode && (
         <button className="fab" onClick={onAddVenue} aria-label="Add venue">+</button>
       )}
