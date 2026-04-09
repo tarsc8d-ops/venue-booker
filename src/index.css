@@ -22,6 +22,7 @@
   --shadow-lg: 0 8px 30px rgba(0,0,0,0.18);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  --sidebar-width: 220px;
 }
 
 html, body, #root { height: 100%; }
@@ -81,15 +82,10 @@ body {
   transition: background 0.15s;
 }
 .hamburger-btn:active { background: var(--border); }
-.hamburger-icon {
-  display: flex; flex-direction: column; gap: 5px; width: 20px;
-}
-.hamburger-icon span {
-  display: block; height: 2px; background: var(--text); border-radius: 2px;
-  width: 100%; transition: all 0.2s;
-}
+.hamburger-icon { display: flex; flex-direction: column; gap: 5px; width: 20px; }
+.hamburger-icon span { display: block; height: 2px; background: var(--text); border-radius: 2px; width: 100%; }
 
-/* ====== SLIDE-OUT DRAWER ====== */
+/* ====== MOBILE-ONLY SLIDE-OUT DRAWER ====== */
 .drawer-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0);
   z-index: 200; pointer-events: none;
@@ -107,11 +103,9 @@ body {
   box-shadow: 6px 0 32px rgba(0,0,0,0.1);
 }
 .drawer.open { transform: translateX(0); }
-
 .drawer-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px;
-  padding-top: calc(14px + var(--safe-top));
+  padding: 14px 18px; padding-top: calc(14px + var(--safe-top));
   border-bottom: 1px solid var(--border);
 }
 .drawer-brand { font-size: 17px; font-weight: 700; color: var(--accent); }
@@ -120,18 +114,12 @@ body {
   background: var(--bg); color: var(--text-2); font-size: 18px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; line-height: 1;
 }
-
-.drawer-user {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px 18px;
-}
+.drawer-user { display: flex; align-items: center; gap: 10px; padding: 14px 18px; }
 .drawer-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .drawer-user-info { min-width: 0; }
 .drawer-user-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .drawer-user-email { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-
 .drawer-divider { height: 1px; background: var(--border); }
-
 .drawer-nav { display: flex; flex-direction: column; padding: 6px 0; flex: 1; overflow-y: auto; }
 .drawer-item {
   display: flex; align-items: center; gap: 14px;
@@ -143,7 +131,6 @@ body {
 .drawer-item-icon { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; }
 .drawer-item-label { flex: 1; }
 .drawer-item-arrow { color: var(--text-3); font-size: 18px; line-height: 1; }
-
 .drawer-spacer { flex: 1; min-height: 16px; }
 .drawer-signout {
   margin: 0 16px; padding: 12px; border: none; border-radius: 12px;
@@ -152,7 +139,112 @@ body {
 }
 .drawer-signout:active { opacity: 0.8; }
 
-/* ====== SAVED ITEMS (Venues & Artists library) ====== */
+/* ====== DESKTOP SIDEBAR ====== */
+.desktop-sidebar {
+  display: none; /* hidden on mobile */
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  height: 100vh;
+  background: #1A1A2E;
+  flex-direction: column;
+  padding: 0;
+  border-right: 1px solid rgba(255,255,255,0.05);
+  position: relative;
+  z-index: 10;
+}
+
+.ds-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.ds-brand-icon { font-size: 22px; }
+.ds-brand-name { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
+
+.ds-nav { display: flex; flex-direction: column; padding: 10px 10px; gap: 2px; flex: 1; overflow-y: auto; }
+.ds-nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 12px; border: none; background: none; cursor: pointer;
+  text-align: left; border-radius: 10px; width: 100%;
+  font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.55);
+  transition: background 0.12s, color 0.12s;
+}
+.ds-nav-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+.ds-nav-item.active { background: rgba(124,58,237,0.25); color: #C4B5FD; }
+.ds-nav-item.active .ds-nav-icon { opacity: 1; }
+.ds-nav-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; opacity: 0.7; }
+.ds-nav-label { flex: 1; }
+
+.ds-spacer { flex: 1; min-height: 16px; }
+
+.ds-footer {
+  padding: 10px 10px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.ds-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+}
+.ds-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.ds-user-info { min-width: 0; flex: 1; }
+.ds-user-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-user-email { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.ds-signout {
+  margin: 4px 0 0; padding: 9px 12px; border: none; border-radius: 10px;
+  background: rgba(239,68,68,0.12); color: #FCA5A5;
+  font-size: 13px; font-weight: 600; cursor: pointer; text-align: center;
+}
+.ds-signout:hover { background: rgba(239,68,68,0.2); }
+
+/* ====== DESKTOP MAIN CONTENT OVERRIDES ====== */
+.desktop-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Desktop top bar (replaces mobile header on tours page) */
+.desktop-topbar {
+  display: none;
+  align-items: center; justify-content: space-between;
+  padding: 20px 28px 0;
+  flex-shrink: 0;
+}
+.desktop-topbar-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.desktop-topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* Desktop stats row */
+.desktop-stats {
+  display: none;
+  gap: 16px;
+  padding: 16px 28px;
+  flex-shrink: 0;
+}
+.desktop-stat-card {
+  flex: 1; background: var(--surface); border-radius: 14px;
+  padding: 18px 20px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.desktop-stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
+.desktop-stat-label { font-size: 12px; color: var(--text-2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+.desktop-stat-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+/* Desktop tour grid */
+.desktop-tour-grid {
+  display: none;
+}
+.desktop-search-bar {
+  display: none;
+  align-items: center; gap: 10px;
+  padding: 0 28px 14px;
+  flex-shrink: 0;
+}
+
+/* ====== SAVED ITEMS ====== */
 .saved-item-card {
   display: flex; align-items: center; gap: 10px;
   background: var(--bg); border-radius: 12px; padding: 12px 14px;
@@ -163,11 +255,8 @@ body {
 .saved-item-email { font-size: 11px; color: var(--accent); margin-top: 2px; }
 .saved-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
-/* ====== ARTIST CHIPS (in TourModal) ====== */
-.artist-chips-scroll {
-  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
-  scrollbar-width: none;
-}
+/* ====== ARTIST CHIPS ====== */
+.artist-chips-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
 .artist-chips-scroll::-webkit-scrollbar { display: none; }
 .artist-chip {
   flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
@@ -178,7 +267,7 @@ body {
 .artist-chip.selected { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
 .artist-chip:active { opacity: 0.8; }
 
-/* ====== STATS STRIP ====== */
+/* ====== STATS STRIP (mobile) ====== */
 .stats-strip {
   display: flex; overflow-x: auto; gap: 0;
   background: var(--surface); border-bottom: 1px solid var(--border);
@@ -457,11 +546,122 @@ body {
 .google-signin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .login-note { font-size: 12px; color: var(--text-3); line-height: 1.5; }
 
-/* ====== DESKTOP CENTERING ====== */
-@media (min-width: 520px) {
+/* ====================================================
+   MOBILE BREAKPOINT (< 768px) — phone-sized centering
+   ==================================================== */
+@media (min-width: 520px) and (max-width: 767px) {
   .app { max-width: 430px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.08); height: 100vh; height: 100dvh; }
   .fab { right: calc(max((100vw - 430px) / 2, 0px) + 20px); }
   .bulk-bar { max-width: 430px; left: 50%; transform: translateX(-50%); padding: 0 20px; }
   .sheet-overlay .bottom-sheet { max-width: 430px; margin: 0 auto; border-radius: 20px 20px 0 0; }
   .drawer { max-width: 300px; }
+}
+
+/* ====================================================
+   DESKTOP BREAKPOINT (≥ 768px) — sidebar + dashboard
+   ==================================================== */
+@media (min-width: 768px) {
+  /* App becomes a flex row */
+  .app {
+    display: flex;
+    flex-direction: row;
+    max-width: none;
+    height: 100vh;
+  }
+
+  /* Show desktop sidebar */
+  .desktop-sidebar { display: flex; }
+
+  /* Hide mobile-only elements */
+  .hamburger-btn { display: none !important; }
+  .drawer-overlay { display: none !important; }
+  .drawer { display: none !important; }
+
+  /* Main content wrapper */
+  .desktop-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    background: var(--bg);
+  }
+
+  /* Screen becomes full height inside main */
+  .screen { height: 100vh; height: 100dvh; }
+
+  /* Show desktop tour grid elements */
+  .desktop-topbar { display: flex; }
+  .desktop-stats { display: flex; }
+  .desktop-search-bar { display: flex; }
+  .desktop-tour-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+    padding: 0 28px;
+    overflow-y: auto;
+    flex: 1;
+    align-content: start;
+    padding-bottom: 24px;
+  }
+
+  /* Hide mobile tour list when on desktop */
+  .mobile-tour-list { display: none; }
+
+  /* Desktop tour card — bigger, cleaner */
+  .desktop-tour-grid .tour-card {
+    border-radius: 14px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .desktop-tour-grid .tour-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  .desktop-tour-grid .tour-card:active { transform: translateY(0) scale(0.99); }
+
+  /* Desktop venue list — more padding */
+  .desktop-main .screen .card-list { padding: 16px 24px; }
+  .desktop-main .screen .search-wrap { padding: 10px 24px; }
+  .desktop-main .screen .stats-strip .stat-chip { padding: 12px 0; font-size: 13px; }
+
+  /* Fix FAB position on desktop */
+  .fab { right: 28px; bottom: 28px; }
+
+  /* Bulk bar on desktop */
+  .bulk-bar { left: calc(var(--sidebar-width) + 20px); right: 20px; padding: 0; }
+
+  /* Bottom sheets centered on desktop */
+  .sheet-overlay { background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+  .sheet-overlay .bottom-sheet {
+    max-width: 520px; width: 100%;
+    border-radius: 20px;
+    max-height: 85vh;
+    animation: fadeScaleIn 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes fadeScaleIn {
+    from { opacity: 0; transform: scale(0.97) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Header on desktop screens (venue list, etc.) */
+  .desktop-main .screen .header {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 16px;
+    min-height: 60px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Desktop empty state */
+  .desktop-main .empty { padding: 80px 24px; }
+
+  /* Scrollbar styling */
+  .desktop-tour-grid::-webkit-scrollbar { width: 5px; }
+  .desktop-tour-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+}
+
+@media (min-width: 1200px) {
+  :root { --sidebar-width: 240px; }
+  .desktop-tour-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 }
