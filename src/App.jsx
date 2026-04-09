@@ -13,7 +13,7 @@ import Drawer from './components/Drawer'
 import SavedVenuesSheet from './components/SavedVenuesSheet'
 import SavedArtistsSheet from './components/SavedArtistsSheet'
 import EmailTemplatesSheet from './components/EmailTemplatesSheet'
-import SurveyLinkSheet from './components/SurveyLinkSheet'
+import SurveyLinksSheet from './components/SurveyLinksSheet'
 
 const GIS_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
@@ -63,6 +63,7 @@ export default function App() {
   const [customTemplates, setCustomTemplates] = useState([])
   const [savedVenues,     setSavedVenues]     = useState([])
   const [savedArtists,    setSavedArtists]    = useState([])
+  const [surveyLinks,     setSurveyLinks]     = useState([])
 
   const [currentTourId, setCurrentTourId] = useState(null)
   const [modal,         setModal]         = useState(null)
@@ -70,11 +71,21 @@ export default function App() {
   const [showSavedVenues,  setShowSavedVenues]  = useState(false)
   const [showSavedArtists, setShowSavedArtists] = useState(false)
   const [showTemplates,    setShowTemplates]    = useState(false)
-  const [showSurveyLink,   setShowSurveyLink]   = useState(false)
+  const [showSurveyLinks,  setShowSurveyLinks]  = useState(false)
 
   const allTemplates = [...DEFAULT_TEMPLATES, ...customTemplates]
 
-  // ─── GIS script ──────────────────────────────────────────────────────────────
+  // Resolve the correct survey link URL for the current tour
+  // Priority: tour's assigned survey link → global fallback surveyLink
+  const getSurveyUrl = useCallback((tour) => {
+    if (tour?.surveyLinkId) {
+      const found = surveyLinks.find(l => l.id === tour.surveyLinkId)
+      if (found?.url) return found.url
+    }
+    return surveyLink
+  }, [surveyLinks, surveyLink])
+
+  // ─── GIS script ────────────────────────────────────────────────────────────
   useEffect(() => {
     const s = document.createElement('script')
     s.src = 'https://accounts.google.com/gsi/client'
@@ -83,24 +94,23 @@ export default function App() {
     document.head.appendChild(s)
   }, [])
 
-  // ─── Apply remote data — always overwrite local state unconditionally ─────────
+  // ─── Apply remote data unconditionally ─────────────────────────────────────
   const applyRemote = useCallback((remote) => {
     setTours(remote.tours          ?? [])
     setVenues(remote.venues         ?? [])
     setSavedVenues(remote.savedVenues    ?? [])
     setSavedArtists(remote.savedArtists  ?? [])
     setCustomTemplates(remote.templates  ?? [])
+    setSurveyLinks(remote.surveyLinks    ?? [])
     if (remote.settings?.surveyLink != null) setSurveyLink(remote.settings.surveyLink)
     if (remote.settings?.sheetId    != null) setSheetId(remote.settings.sheetId)
   }, [])
 
-  // ─── Sync from DB on sign-in ─────────────────────────────────────────────────
+  // ─── Sync from DB on sign-in ─────────────────────────────────────────────
   const syncFromDB = useCallback(async (token) => {
     if (!token) { setDbReady(true); return }
     try {
       const remote = await db.loadAll(token)
-
-      // One-time migration: if DB is empty but localStorage has data, push it up
       const isEmpty = !remote.tours?.length && !remote.venues?.length
       const localTours  = ls.get('vb_tours', [])
       const localVenues = ls.get('vb_venues', [])
@@ -121,18 +131,15 @@ export default function App() {
             ? db.saveSettings({ surveyLink: lSurvey, sheetId: lSheetId }, token)
             : Promise.resolve(),
         ])
-        const migrated = await db.loadAll(token)
-        applyRemote(migrated)
+        applyRemote(await db.loadAll(token))
       } else {
         applyRemote(remote)
       }
     } catch (err) {
-      // TOKEN EXPIRED — show re-auth prompt instead of silently failing
       if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired')) {
         setNeedsReAuth(true)
       } else {
         console.warn('DB sync failed:', err.message)
-        // Fall back to localStorage so app isn't broken
         setTours(ls.get('vb_tours', []))
         setVenues(ls.get('vb_venues', []))
         setSavedVenues(ls.get('vb_saved_venues', []))
@@ -151,33 +158,19 @@ export default function App() {
     else setDbReady(true)
   }, [auth?.accessToken])
 
-  // ─── Auth ─────────────────────────────────────────────────────────────────────
+  // ─── Auth ─────────────────────────────────────────────────────────────────
   const signIn = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-    if (!window.google || !clientId) {
-      alert('Add VITE_GOOGLE_CLIENT_ID to your Netlify environment variables.')
-      return
-    }
+    if (!window.google || !clientId) { alert('Add VITE_GOOGLE_CLIENT_ID to your Netlify env vars.'); return }
     const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: GIS_SCOPES,
+      client_id: clientId, scope: GIS_SCOPES,
       callback: async (resp) => {
         if (resp.error) { console.error('OAuth error:', resp); return }
         try {
-          const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: { Authorization: `Bearer ${resp.access_token}` }
-          })
+          const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${resp.access_token}` } })
           const user = await r.json()
-          const authData = {
-            accessToken: resp.access_token,
-            email: user.email,
-            name: user.name || user.email,
-            picture: user.picture,
-            expiresAt: Date.now() + resp.expires_in * 1000,
-          }
-          setAuth(authData)
-          setNeedsReAuth(false)
-          setDbReady(false) // triggers fresh sync
+          const authData = { accessToken: resp.access_token, email: user.email, name: user.name || user.email, picture: user.picture, expiresAt: Date.now() + resp.expires_in * 1000 }
+          setAuth(authData); setNeedsReAuth(false); setDbReady(false)
           ls.set('vb_auth', authData)
         } catch (e) { console.error('Failed to get user info:', e) }
       },
@@ -192,21 +185,16 @@ export default function App() {
     setTours([]); setVenues([])
   }
 
-  // ─── getToken: no early cutoff — let the API reject if truly expired ──────────
   const getToken = useCallback(() => auth?.accessToken || null, [auth])
-
-  // ─── persist: detect 401 and prompt re-auth instead of silent fail ───────────
-  const persist = useCallback((fn) => {
+  const persist  = useCallback((fn) => {
     fn().catch(err => {
-      if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired')) {
+      if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired'))
         setNeedsReAuth(true)
-      } else {
-        console.warn('DB write failed:', err.message)
-      }
+      else console.warn('DB write failed:', err.message)
     })
   }, [])
 
-  // ─── Tours ────────────────────────────────────────────────────────────────────
+  // ─── Tours ────────────────────────────────────────────────────────────────
   const addTour = (d) => {
     const t = { ...d, id: `t_${Date.now()}`, createdAt: new Date().toISOString() }
     setTours(prev => [...prev, t])
@@ -226,7 +214,7 @@ export default function App() {
     persist(() => db.delete('tours', id, getToken()))
   }
 
-  // ─── Venues ───────────────────────────────────────────────────────────────────
+  // ─── Venues ───────────────────────────────────────────────────────────────
   const addVenue = (d) => {
     const { _saveToLib, ...venueData } = d
     const v = { ...venueData, id: `v_${Date.now()}`, status: 'pending', createdAt: new Date().toISOString() }
@@ -245,26 +233,20 @@ export default function App() {
       return updated
     })
   }
-  const deleteVenue = (id) => {
-    setVenues(v => v.filter(x => x.id !== id))
-    persist(() => db.delete('venues', id, getToken()))
-  }
+  const deleteVenue   = (id) => { setVenues(v => v.filter(x => x.id !== id)); persist(() => db.delete('venues', id, getToken())) }
   const markEmailSent = (id) => updateVenue(id, { status: 'email_sent', emailSentAt: new Date().toISOString() })
 
-  // ─── Templates ────────────────────────────────────────────────────────────────
+  // ─── Templates ────────────────────────────────────────────────────────────
   const saveTemplate = (t) => {
     setCustomTemplates(prev => {
-      const exists = prev.find(x => x.id === t.id)
+      const e = prev.find(x => x.id === t.id)
       persist(() => db.upsert('email_templates', t, getToken()))
-      return exists ? prev.map(x => x.id === t.id ? t : x) : [...prev, t]
+      return e ? prev.map(x => x.id === t.id ? t : x) : [...prev, t]
     })
   }
-  const deleteTemplate = (id) => {
-    setCustomTemplates(prev => prev.filter(x => x.id !== id))
-    persist(() => db.delete('email_templates', id, getToken()))
-  }
+  const deleteTemplate = (id) => { setCustomTemplates(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('email_templates', id, getToken())) }
 
-  // ─── Saved Venues ──────────────────────────────────────────────────────────────
+  // ─── Saved Venues ─────────────────────────────────────────────────────────
   const saveSavedVenue = (v) => {
     setSavedVenues(prev => {
       const e = prev.find(x => x.id === v.id)
@@ -273,12 +255,9 @@ export default function App() {
       return e ? prev.map(x => x.id === v.id ? entry : x) : [...prev, entry]
     })
   }
-  const deleteSavedVenue = (id) => {
-    setSavedVenues(prev => prev.filter(x => x.id !== id))
-    persist(() => db.delete('saved_venues', id, getToken()))
-  }
+  const deleteSavedVenue = (id) => { setSavedVenues(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_venues', id, getToken())) }
 
-  // ─── Saved Artists ─────────────────────────────────────────────────────────────
+  // ─── Saved Artists ────────────────────────────────────────────────────────
   const saveSavedArtist = (a) => {
     setSavedArtists(prev => {
       const e = prev.find(x => x.id === a.id)
@@ -287,27 +266,25 @@ export default function App() {
       return e ? prev.map(x => x.id === a.id ? entry : x) : [...prev, entry]
     })
   }
-  const deleteSavedArtist = (id) => {
-    setSavedArtists(prev => prev.filter(x => x.id !== id))
-    persist(() => db.delete('saved_artists', id, getToken()))
-  }
+  const deleteSavedArtist = (id) => { setSavedArtists(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_artists', id, getToken())) }
 
-  // ─── Settings ──────────────────────────────────────────────────────────────────
-  const handleSurveyLinkChange = (v) => {
-    setSurveyLink(v)
-    persist(() => db.saveSettings({ surveyLink: v, sheetId }, getToken()))
+  // ─── Survey Links ─────────────────────────────────────────────────────────
+  const saveSurveyLink = (l) => {
+    setSurveyLinks(prev => {
+      const e = prev.find(x => x.id === l.id)
+      const entry = e ? l : { ...l, id: `sl_${Date.now()}`, createdAt: new Date().toISOString() }
+      persist(() => db.upsert('survey_links', entry, getToken()))
+      return e ? prev.map(x => x.id === l.id ? entry : x) : [...prev, entry]
+    })
   }
-  const handleSheetIdChange = (v) => {
-    setSheetId(v)
-    persist(() => db.saveSettings({ surveyLink, sheetId: v }, getToken()))
-  }
+  const deleteSurveyLink = (id) => { setSurveyLinks(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('survey_links', id, getToken())) }
 
-  // ─── Drawer ────────────────────────────────────────────────────────────────────
+  // ─── Drawer ───────────────────────────────────────────────────────────────
   const handleDrawerNav = (key) => {
     if (key === 'saved-venues')  { setShowSavedVenues(true);  return }
     if (key === 'saved-artists') { setShowSavedArtists(true); return }
     if (key === 'templates')     { setShowTemplates(true);    return }
-    if (key === 'survey')        { setShowSurveyLink(true);   return }
+    if (key === 'survey')        { setShowSurveyLinks(true);  return }
     if (key === 'settings')      { setModal({ type: 'settings' }); return }
   }
 
@@ -319,21 +296,20 @@ export default function App() {
 
   if (!dbReady) {
     return (
-      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'var(--bg)', gap:'16px' }}>
-        <div style={{ fontSize:'40px' }}>🎵</div>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', gap: '16px' }}>
+        <div style={{ fontSize: '40px' }}>🎵</div>
         <div className="spinner" />
-        <div style={{ fontSize:'14px', color:'var(--text-2)' }}>Loading your data…</div>
+        <div style={{ fontSize: '14px', color: 'var(--text-2)' }}>Loading your data…</div>
       </div>
     )
   }
 
   return (
     <div className="app">
-      {/* Re-auth banner — shown when token expires mid-session */}
       {needsReAuth && (
-        <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:500, background:'#DC2626', color:'white', padding:'12px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:'14px', fontWeight:'500' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 500, background: '#DC2626', color: 'white', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', fontWeight: '500' }}>
           <span>Session expired — your changes may not be saving.</span>
-          <button onClick={signIn} style={{ background:'white', color:'#DC2626', border:'none', borderRadius:'8px', padding:'6px 14px', fontWeight:'700', cursor:'pointer', fontSize:'13px' }}>
+          <button onClick={signIn} style={{ background: 'white', color: '#DC2626', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>
             Re-authenticate
           </button>
         </div>
@@ -343,8 +319,7 @@ export default function App() {
 
       {currentTourId ? (
         <VenueList
-          tour={currentTour} venues={currentVenues} templates={allTemplates}
-          auth={auth}
+          tour={currentTour} venues={currentVenues} templates={allTemplates} auth={auth}
           onBack={() => setCurrentTourId(null)}
           onAddVenue={() => setModal({ type: 'venue', data: null })}
           onEditVenue={(v) => setModal({ type: 'venue', data: v })}
@@ -367,7 +342,7 @@ export default function App() {
       )}
 
       {modal?.type === 'tour' && (
-        <TourModal tour={modal.data} templates={allTemplates} savedArtists={savedArtists}
+        <TourModal tour={modal.data} templates={allTemplates} savedArtists={savedArtists} surveyLinks={surveyLinks}
           onSave={(d) => { modal.data ? updateTour(modal.data.id, d) : addTour(d); close() }}
           onDelete={modal.data ? () => { deleteTour(modal.data.id); close() } : null}
           onClose={close} />
@@ -379,25 +354,19 @@ export default function App() {
       )}
       {modal?.type === 'email' && (
         <EmailModal venue={modal.data} tour={currentTour} templates={allTemplates}
-          surveyLink={surveyLink} accessToken={getToken()}
+          surveyLink={getSurveyUrl(currentTour)} accessToken={getToken()}
           onReAuth={signIn} onSent={() => { markEmailSent(modal.data.id); close() }} onClose={close} />
       )}
       {modal?.type === 'test-email' && (
         <EmailModal
           venue={{ venueName: 'Test Venue', contactName: auth?.name, contactEmail: auth?.email, showDate: new Date().toISOString().split('T')[0], showTime: '20:00' }}
-          tour={currentTour}
-          templates={allTemplates}
-          surveyLink={surveyLink}
-          accessToken={getToken()}
-          isTest
-          onReAuth={signIn}
-          onSent={close}
-          onClose={close}
-        />
+          tour={currentTour} templates={allTemplates}
+          surveyLink={getSurveyUrl(currentTour)} accessToken={getToken()}
+          isTest onReAuth={signIn} onSent={close} onClose={close} />
       )}
       {modal?.type === 'bulk' && (
         <BulkEmailModal venues={modal.data} tour={currentTour} templates={allTemplates}
-          surveyLink={surveyLink} accessToken={getToken()}
+          surveyLink={getSurveyUrl(currentTour)} accessToken={getToken()}
           onReAuth={signIn} onSent={(ids) => { ids.forEach(id => markEmailSent(id)); close() }} onClose={close} />
       )}
       {modal?.type === 'survey' && <SurveyModal venue={modal.data} onClose={close} />}
@@ -406,7 +375,7 @@ export default function App() {
       {showSavedVenues  && <SavedVenuesSheet  savedVenues={savedVenues}   onSave={saveSavedVenue}   onDelete={deleteSavedVenue}   onClose={() => setShowSavedVenues(false)} />}
       {showSavedArtists && <SavedArtistsSheet savedArtists={savedArtists} onSave={saveSavedArtist}  onDelete={deleteSavedArtist}  onClose={() => setShowSavedArtists(false)} />}
       {showTemplates    && <EmailTemplatesSheet customTemplates={customTemplates} defaultTemplates={DEFAULT_TEMPLATES} onSaveTemplate={saveTemplate} onDeleteTemplate={deleteTemplate} onClose={() => setShowTemplates(false)} />}
-      {showSurveyLink   && <SurveyLinkSheet surveyLink={surveyLink} sheetId={sheetId} onSurveyLinkChange={handleSurveyLinkChange} onSheetIdChange={handleSheetIdChange} onClose={() => setShowSurveyLink(false)} />}
+      {showSurveyLinks  && <SurveyLinksSheet surveyLinks={surveyLinks} onSave={saveSurveyLink} onDelete={deleteSurveyLink} onClose={() => setShowSurveyLinks(false)} />}
     </div>
   )
 }
