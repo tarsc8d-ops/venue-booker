@@ -1,10 +1,10 @@
 export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
   const items = [
-    { icon: '🏟️', label: 'Saved Venues',    key: 'saved-venues'   },
-    { icon: '🎤', label: 'Saved Artists',   key: 'saved-artists'  },
-    { icon: '✉️', label: 'Email Templates', key: 'templates'      },
-    { icon: '🔗', label: 'Survey Link',     key: 'survey'         },
-    { icon: '⚙️', label: 'Account',         key: 'settings'       },
+    { icon: '🏟️', label: 'Saved Venues',    key: 'saved-venues'  },
+    { icon: '🎤', label: 'Saved Artists',   key: 'saved-artists' },
+    { icon: '✉️', label: 'Email Templates', key: 'templates'     },
+    { icon: '🔗', label: 'Survey Links',    key: 'survey'        },
+    { icon: '⚙️', label: 'Account',         key: 'settings'      },
   ]
 
   return (
@@ -15,7 +15,6 @@ export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
           <div className="drawer-brand">🎵 VenueBooker</div>
           <button className="drawer-close" onClick={onClose}>×</button>
         </div>
-
         {auth && (
           <div className="drawer-user">
             {auth.picture && (
@@ -28,9 +27,7 @@ export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
             </div>
           </div>
         )}
-
         <div className="drawer-divider" />
-
         <nav className="drawer-nav">
           {items.map(({ icon, label, key }) => (
             <button key={key} className="drawer-item" onClick={() => { onNav(key); onClose() }}>
@@ -40,13 +37,9 @@ export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
             </button>
           ))}
         </nav>
-
         <div className="drawer-spacer" />
-
-        <button
-          className="drawer-signout"
-          onClick={() => { if (confirm('Sign out?')) { onSignOut(); onClose() } }}
-        >
+        <button className="drawer-signout"
+          onClick={() => { if (confirm('Sign out?')) { onSignOut(); onClose() } }}>
           Sign Out
         </button>
       </div>
