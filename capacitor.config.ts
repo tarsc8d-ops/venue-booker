@@ -9,10 +9,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     GoogleAuth: {
-      // Web client ID (same one already in Netlify env vars)
       clientId: '496348736505-8p6p3mpnebdpe32it4e1fvc7hvv96alc.apps.googleusercontent.com',
-      // iOS client ID — create this in Google Cloud Console (see iOS_SETUP.md)
-      iosClientId: 'REPLACE_WITH_IOS_CLIENT_ID',
+      iosClientId: '496348736505-rasrpncbc5ln5lhimb33t9pnk51ednju.apps.googleusercontent.com',
       scopes: [
         'email',
         'profile',
