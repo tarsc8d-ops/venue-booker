@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from './lib/db'
+import { isNative, getGoogleAuthPlugin } from './lib/platform'
 import { VenBookLogo } from './components/Icons'
 import LoginScreen from './components/LoginScreen'
 import TourList from './components/TourList'
@@ -18,6 +19,7 @@ import SavedArtistsSheet from './components/SavedArtistsSheet'
 import EmailTemplatesSheet from './components/EmailTemplatesSheet'
 import SurveyLinksSheet from './components/SurveyLinksSheet'
 
+// Web OAuth scopes (GIS)
 const GIS_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -96,11 +98,21 @@ export default function App() {
     return surveyLink
   }, [surveyLinks, surveyLink])
 
+  // Load GIS script only on web (not needed in native)
   useEffect(() => {
+    if (isNative()) { setGisReady(true); return }
     const s = document.createElement('script')
     s.src = 'https://accounts.google.com/gsi/client'
     s.async = true; s.onload = () => setGisReady(true)
     document.head.appendChild(s)
+  }, [])
+
+  // StatusBar: set light style on iOS
+  useEffect(() => {
+    if (!isNative()) return
+    import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+      StatusBar.setStyle({ style: Style.Light }).catch(() => {})
+    }).catch(() => {})
   }, [])
 
   const applyRemote = useCallback((remote) => {
@@ -114,7 +126,12 @@ export default function App() {
     if (remote.settings?.sheetId    != null) setSheetId(remote.settings.sheetId)
   }, [])
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    // Also sign out of native Google auth if on iOS
+    if (isNative()) {
+      const GoogleAuth = await getGoogleAuthPlugin()
+      if (GoogleAuth) { try { await GoogleAuth.signOut() } catch {} }
+    }
     localStorage.removeItem('vb_auth')
     setAuth(null); setCurrentTourId(null); setModal(null)
     setDrawerOpen(false); setDbReady(false)
@@ -164,7 +181,34 @@ export default function App() {
     else setDbReady(true)
   }, [auth?.accessToken])
 
-  const signIn = useCallback(() => {
+  // ─── Native iOS sign-in via @capacitor/google-auth ───────────────────────
+  const signInNative = useCallback(async () => {
+    const GoogleAuth = await getGoogleAuthPlugin()
+    if (!GoogleAuth) { console.error('GoogleAuth plugin not loaded'); return }
+    try {
+      await GoogleAuth.initialize()
+      const result = await GoogleAuth.signIn()
+      // result.authentication.accessToken is the Gmail-capable access token
+      const accessToken = result.authentication.accessToken
+      const authData = {
+        accessToken,
+        email: result.email,
+        name: result.name || result.email,
+        picture: result.imageUrl,
+        // Native tokens refresh automatically — set a long expiry
+        expiresAt: Date.now() + 3600 * 1000,
+      }
+      setAuth(authData); setDbReady(false)
+      ls.set('vb_auth', authData)
+    } catch (e) {
+      if (e.error !== 'popup_closed_by_user') {
+        console.error('Native sign-in failed:', e)
+      }
+    }
+  }, [])
+
+  // ─── Web sign-in via GIS ─────────────────────────────────────────────────
+  const signInWeb = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!window.google || !clientId) { alert('Add VITE_GOOGLE_CLIENT_ID to your Netlify env vars.'); return }
     const client = window.google.accounts.oauth2.initTokenClient({
@@ -182,6 +226,12 @@ export default function App() {
     })
     client.requestAccessToken()
   }, [gisReady])
+
+  // Platform-aware sign-in
+  const signIn = useCallback(() => {
+    if (isNative()) return signInNative()
+    return signInWeb()
+  }, [signInNative, signInWeb])
 
   const getToken = useCallback(() => auth?.accessToken || null, [auth])
   const persist = useCallback((fn) => {

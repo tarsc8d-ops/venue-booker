@@ -1,17 +1,27 @@
 {
-  "name": "venue-booker",
+  "name": "venbook",
   "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ios": "npm run build && npx cap sync ios && npx cap open ios",
+    "ios:build": "npm run build && npx cap sync ios",
+    "ios:open": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/browser": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/google-auth": "^3.3.1",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^5.4.10"
   }
