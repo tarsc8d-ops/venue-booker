@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SearchIcon, XIcon, SendIcon, BarChartIcon, EditIcon, TrashIcon, FlaskIcon, SelectIcon } from './Icons'
 
 const STATUS = {
   pending:    { label: 'Pending',   dot: '#AEAEB2' },
@@ -60,66 +61,48 @@ export default function VenueList({ tour, venues, templates, auth, onBack, onAdd
 
   return (
     <div className="screen">
-      {/* Header */}
       <div className="header">
         {selectMode ? (
           <>
-            <button className="back-btn" onClick={clearSelect} style={{ fontSize: '16px', width: '56px' }}>Cancel</button>
+            <button className="back-btn" onClick={clearSelect} style={{ fontSize: '14px', fontWeight: '600', width: '56px', color: 'var(--text-2)' }}>Cancel</button>
             <div className="header-center">
-              <div className="header-title">
-                {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select Venues'}
-              </div>
+              <div className="header-title">{selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select Venues'}</div>
             </div>
-            <button
-              onClick={selectAll}
-              style={{ fontSize: '14px', fontWeight: '600', color: 'var(--accent)', border: 'none', background: 'none', cursor: 'pointer', padding: '8px', width: '56px' }}
-            >
-              All
-            </button>
+            <button onClick={selectAll} style={{ fontSize: '13px', fontWeight: '600', color: 'var(--accent)', border: 'none', background: 'none', cursor: 'pointer', padding: '8px', width: '56px' }}>All</button>
           </>
         ) : (
           <>
-            <button className="back-btn" onClick={onBack} aria-label="Back">‹</button>
+            <button className="back-btn" onClick={onBack} aria-label="Back">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
             <div className="header-center">
               <div className="header-title">{tour?.name || 'Venues'}</div>
-              {tour?.artist && <div className="header-sub">🎤 {tour.artist}</div>}
+              {tour?.artist && <div className="header-sub">{tour.artist}</div>}
             </div>
             <button
               className="icon-btn"
               onClick={() => { setSelectMode(true); setExpanded(null) }}
               title="Select venues for bulk email"
-              style={{ fontSize: '20px' }}
             >
-              ☑️
+              <SelectIcon width={19} height={19} />
             </button>
           </>
         )}
       </div>
 
-      {/* Test Email Banner — always visible at top */}
       {!selectMode && (
-        <button
-          onClick={onTestEmail}
-          style={{
-            width: '100%', padding: '10px 16px',
-            background: 'linear-gradient(135deg, #EDE9FE, #DBEAFE)',
-            border: 'none', borderBottom: '1px solid var(--border)',
-            display: 'flex', alignItems: 'center', gap: '10px',
-            cursor: 'pointer', flexShrink: 0, textAlign: 'left',
-          }}
-        >
-          <span style={{ fontSize: '18px' }}>🧪</span>
+        <button onClick={onTestEmail} style={{ width: '100%', padding: '10px 16px', background: 'var(--surface)', border: 'none', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flexShrink: 0, textAlign: 'left' }}>
+          <span style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <FlaskIcon width={15} height={15} style={{ color: 'var(--accent)' }} />
+          </span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--accent)' }}>Send Test Email</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-2)' }}>
-              Send to yourself ({auth?.email || 'your Gmail'}) to preview the template
-            </div>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text)' }}>Send Test Email</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>Preview the template — sends to {auth?.email || 'your inbox'}</div>
           </div>
-          <span style={{ color: 'var(--accent)', fontSize: '18px', opacity: 0.6 }}>›</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.3 }}><polyline points="9 18 15 12 9 6" /></svg>
         </button>
       )}
 
-      {/* Stats strip */}
       <div className="stats-strip">
         {FILTERS.map(([val, label]) => (
           <div key={val} className={`stat-chip ${filter === val ? 'active' : ''}`} onClick={() => setFilter(val)}>
@@ -129,28 +112,26 @@ export default function VenueList({ tour, venues, templates, auth, onBack, onAdd
         ))}
       </div>
 
-      {/* Search */}
       <div className="search-wrap">
         <div className="search-input-wrap">
-          <span className="search-icon-inner">🔍</span>
-          <input
-            className="search-input" type="search" placeholder="Search venues…"
-            value={search} onChange={e => setSearch(e.target.value)}
-          />
-          {search && <button className="clear-btn" onClick={() => setSearch('')}>×</button>}
+          <span className="search-icon-inner"><SearchIcon width={15} height={15} /></span>
+          <input className="search-input" type="search" placeholder="Search venues..."
+            value={search} onChange={e => setSearch(e.target.value)} />
+          {search && <button className="clear-btn" onClick={() => setSearch('')}><XIcon width={16} height={16} /></button>}
         </div>
       </div>
 
-      {/* Venue list */}
       <div className="scroll-content">
         {visible.length === 0 ? (
           <div className="empty">
-            <div className="empty-emoji">🏟️</div>
+            <div className="empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.2 }}>
+                <path d="M3 21h18M4 21V8l8-5 8 5v13" /><rect x="9" y="14" width="6" height="7" />
+              </svg>
+            </div>
             <h3>{venues.length === 0 ? 'No venues yet' : 'No matches'}</h3>
             <p>{venues.length === 0 ? 'Add your first venue to this tour.' : 'Try a different search or filter.'}</p>
-            {venues.length === 0 && (
-              <button className="btn-primary" onClick={onAddVenue}>+ Add First Venue</button>
-            )}
+            {venues.length === 0 && <button className="btn-primary" onClick={onAddVenue}>Add First Venue</button>}
           </div>
         ) : (
           <div className="card-list">
@@ -163,10 +144,7 @@ export default function VenueList({ tour, venues, templates, auth, onBack, onAdd
 
               return (
                 <div key={venue.id} className="venue-card">
-                  <div
-                    className="venue-card-main"
-                    onClick={() => selectMode ? toggleSelect(venue.id) : toggle(venue.id)}
-                  >
+                  <div className="venue-card-main" onClick={() => selectMode ? toggleSelect(venue.id) : toggle(venue.id)}>
                     {selectMode ? (
                       <div className={`venue-checkbox ${isSelected ? 'checked' : ''}`} />
                     ) : (
@@ -181,13 +159,13 @@ export default function VenueList({ tour, venues, templates, auth, onBack, onAdd
                         {!venue.city && !date && <span style={{ color: 'var(--text-3)' }}>No date set</span>}
                       </div>
                       {venue.contactName && (
-                        <div className="venue-card-contact">
-                          {venue.contactName}{venue.contactEmail ? ` · ${venue.contactEmail}` : ''}
-                        </div>
+                        <div className="venue-card-contact">{venue.contactName}{venue.contactEmail ? ` · ${venue.contactEmail}` : ''}</div>
                       )}
                     </div>
                     {!selectMode && (
-                      <div className="venue-chevron" style={{ transform: isOpen ? 'rotate(90deg)' : '' }}>›</div>
+                      <div className="venue-chevron" style={{ transform: isOpen ? 'rotate(90deg)' : '', opacity: 0.3 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+                      </div>
                     )}
                   </div>
 
@@ -195,12 +173,18 @@ export default function VenueList({ tour, venues, templates, auth, onBack, onAdd
                     <div className="venue-card-actions" onClick={e => e.stopPropagation()}>
                       {venue.notes && <p className="venue-notes">{venue.notes}</p>}
                       <div className="action-row">
-                        <button className="action-chip action-email"  onClick={() => onSendEmail(venue)}>✉️ Email</button>
-                        <button className="action-chip action-survey" onClick={() => onViewSurvey(venue)}>📊 Results</button>
-                        <button className="action-chip action-edit"   onClick={() => onEditVenue(venue)}>✏️ Edit</button>
+                        <button className="action-chip action-email" onClick={() => onSendEmail(venue)}>
+                          <SendIcon width={13} height={13} /> Email
+                        </button>
+                        <button className="action-chip action-survey" onClick={() => onViewSurvey(venue)}>
+                          <BarChartIcon width={13} height={13} /> Results
+                        </button>
+                        <button className="action-chip action-edit" onClick={() => onEditVenue(venue)}>
+                          <EditIcon width={13} height={13} /> Edit
+                        </button>
                         <button className="action-chip action-delete"
                           onClick={() => { if (confirm(`Delete "${venue.venueName}"?`)) onDeleteVenue(venue.id) }}>
-                          🗑️
+                          <TrashIcon width={13} height={13} />
                         </button>
                       </div>
                     </div>
@@ -213,20 +197,14 @@ export default function VenueList({ tour, venues, templates, auth, onBack, onAdd
         <div style={{ height: '100px' }} />
       </div>
 
-      {/* Bulk email action bar */}
       {selectMode && selectedIds.size > 0 && (
         <div className="bulk-bar">
-          <button
-            className="btn-primary"
-            style={{ width: '100%', padding: '15px', fontSize: '16px', borderRadius: '14px', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }}
-            onClick={() => onBulkEmail(selectedVenues)}
-          >
+          <button className="btn-primary" style={{ width: '100%', padding: '15px', fontSize: '16px', borderRadius: '14px', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }} onClick={() => onBulkEmail(selectedVenues)}>
             Send Email to {selectedIds.size} Venue{selectedIds.size !== 1 ? 's' : ''}
           </button>
         </div>
       )}
 
-      {/* FAB */}
       {!selectMode && (
         <button className="fab" onClick={onAddVenue} aria-label="Add venue">+</button>
       )}

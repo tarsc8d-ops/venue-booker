@@ -1,10 +1,13 @@
+import { VenBookLogo, ToursIcon, VenueIcon, ArtistIcon, MailIcon, LinkIcon, SettingsIcon, XIcon } from './Icons'
+
 export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
   const items = [
-    { icon: '🏟️', label: 'Saved Venues',    key: 'saved-venues'  },
-    { icon: '🎤', label: 'Saved Artists',   key: 'saved-artists' },
-    { icon: '✉️', label: 'Email Templates', key: 'templates'     },
-    { icon: '🔗', label: 'Survey Links',    key: 'survey'        },
-    { icon: '⚙️', label: 'Account',         key: 'settings'      },
+    { Icon: ToursIcon,  label: 'Tours',           key: 'tours'         },
+    { Icon: VenueIcon,  label: 'Saved Venues',    key: 'saved-venues'  },
+    { Icon: ArtistIcon, label: 'Saved Artists',   key: 'saved-artists' },
+    { Icon: MailIcon,   label: 'Email Templates', key: 'templates'     },
+    { Icon: LinkIcon,   label: 'Survey Links',    key: 'survey'        },
+    { Icon: SettingsIcon, label: 'Account',       key: 'settings'      },
   ]
 
   return (
@@ -12,9 +15,15 @@ export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
       <div className={`drawer-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} />
       <div className={`drawer ${isOpen ? 'open' : ''}`}>
         <div className="drawer-header">
-          <div className="drawer-brand">🎵 VenueBooker</div>
-          <button className="drawer-close" onClick={onClose}>×</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <VenBookLogo size={28} />
+            <span className="drawer-brand">VenBook</span>
+          </div>
+          <button className="drawer-close" onClick={onClose}>
+            <XIcon width={16} height={16} />
+          </button>
         </div>
+
         {auth && (
           <div className="drawer-user">
             {auth.picture && (
@@ -27,19 +36,25 @@ export default function Drawer({ isOpen, onClose, auth, onNav, onSignOut }) {
             </div>
           </div>
         )}
+
         <div className="drawer-divider" />
+
         <nav className="drawer-nav">
-          {items.map(({ icon, label, key }) => (
+          {items.map(({ Icon, label, key }) => (
             <button key={key} className="drawer-item" onClick={() => { onNav(key); onClose() }}>
-              <span className="drawer-item-icon">{icon}</span>
+              <span className="drawer-item-icon"><Icon width={18} height={18} /></span>
               <span className="drawer-item-label">{label}</span>
-              <span className="drawer-item-arrow">›</span>
+              <span className="drawer-item-arrow" style={{ fontSize: '16px', opacity: 0.4 }}>›</span>
             </button>
           ))}
         </nav>
+
         <div className="drawer-spacer" />
-        <button className="drawer-signout"
-          onClick={() => { if (confirm('Sign out?')) { onSignOut(); onClose() } }}>
+
+        <button
+          className="drawer-signout"
+          onClick={() => { if (confirm('Sign out?')) { onSignOut(); onClose() } }}
+        >
           Sign Out
         </button>
       </div>

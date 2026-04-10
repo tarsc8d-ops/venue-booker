@@ -1,29 +1,29 @@
+import { VenBookLogo, ToursIcon, VenueIcon, ArtistIcon, MailIcon, LinkIcon, SettingsIcon } from './Icons'
+
 export default function DesktopSidebar({ auth, currentPage, onNav, onSignOut }) {
   const navItems = [
-    { icon: '🗺️',  label: 'Tours',           key: 'tours'         },
-    { icon: '🏟️',  label: 'Saved Venues',    key: 'saved-venues'  },
-    { icon: '🎤',  label: 'Saved Artists',   key: 'saved-artists' },
-    { icon: '✉️',  label: 'Email Templates', key: 'templates'     },
-    { icon: '🔗',  label: 'Survey Links',    key: 'survey'        },
+    { Icon: ToursIcon,   label: 'Tours',           key: 'tours'         },
+    { Icon: VenueIcon,   label: 'Saved Venues',    key: 'saved-venues'  },
+    { Icon: ArtistIcon,  label: 'Saved Artists',   key: 'saved-artists' },
+    { Icon: MailIcon,    label: 'Email Templates', key: 'templates'     },
+    { Icon: LinkIcon,    label: 'Survey Links',    key: 'survey'        },
   ]
 
   return (
     <aside className="desktop-sidebar">
-      {/* Brand */}
-      <div className="ds-brand">
-        <span className="ds-brand-icon">🎵</span>
-        <span className="ds-brand-name">VenueBooker</span>
+      <div className="ds-brand" onClick={() => onNav('tours')} style={{ cursor: 'pointer' }}>
+        <VenBookLogo size={30} />
+        <span className="ds-brand-name">VenBook</span>
       </div>
 
-      {/* Nav */}
       <nav className="ds-nav">
-        {navItems.map(({ icon, label, key }) => (
+        {navItems.map(({ Icon, label, key }) => (
           <button
             key={key}
             className={`ds-nav-item ${currentPage === key ? 'active' : ''}`}
             onClick={() => onNav(key)}
           >
-            <span className="ds-nav-icon">{icon}</span>
+            <span className="ds-nav-icon"><Icon width={17} height={17} /></span>
             <span className="ds-nav-label">{label}</span>
           </button>
         ))}
@@ -31,10 +31,9 @@ export default function DesktopSidebar({ auth, currentPage, onNav, onSignOut }) 
 
       <div className="ds-spacer" />
 
-      {/* User + Account */}
       <div className="ds-footer">
-        <button className="ds-nav-item" onClick={() => onNav('settings')}>
-          <span className="ds-nav-icon">⚙️</span>
+        <button className={`ds-nav-item ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => onNav('settings')}>
+          <span className="ds-nav-icon"><SettingsIcon width={17} height={17} /></span>
           <span className="ds-nav-label">Account</span>
         </button>
         {auth && (

@@ -1,15 +1,19 @@
+import { VenBookLogo } from './Icons'
+
 export default function LoginScreen({ onSignIn, loading }) {
   return (
     <div className="login-screen">
       <div className="login-content">
-        <div className="login-icon">🎵</div>
-        <h1 className="login-title">VenueBooker</h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <VenBookLogo size={64} />
+        </div>
+        <h1 className="login-title">VenBook</h1>
         <p className="login-sub">Artist management made easy</p>
 
         <div className="login-features">
-          <div className="feature-item">📋 Organize venues by tour</div>
-          <div className="feature-item">✉️ Send emails from your Gmail</div>
-          <div className="feature-item">📊 Track survey responses</div>
+          <div className="feature-item">Organize venues by tour</div>
+          <div className="feature-item">Send emails directly from your Gmail</div>
+          <div className="feature-item">Track survey responses</div>
         </div>
 
         <button className="google-signin-btn" onClick={onSignIn} disabled={loading}>
@@ -19,7 +23,7 @@ export default function LoginScreen({ onSignIn, loading }) {
             <path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
             <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
           </svg>
-          {loading ? 'Loading…' : 'Continue with Google'}
+          {loading ? 'Loading...' : 'Continue with Google'}
         </button>
 
         <p className="login-note">Your Gmail account is used to send emails to venues. We only request the permissions we need.</p>
