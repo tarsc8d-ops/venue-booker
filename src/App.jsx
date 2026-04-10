@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from './lib/db'
+import { VenBookLogo } from './components/Icons'
 import LoginScreen from './components/LoginScreen'
 import TourList from './components/TourList'
 import VenueList from './components/VenueList'
@@ -113,7 +114,6 @@ export default function App() {
     if (remote.settings?.sheetId    != null) setSheetId(remote.settings.sheetId)
   }, [])
 
-  // ── Clean sign-out: called when token is expired/invalid ─────────────────
   const signOut = useCallback(() => {
     localStorage.removeItem('vb_auth')
     setAuth(null); setCurrentTourId(null); setModal(null)
@@ -148,11 +148,8 @@ export default function App() {
       }
     } catch (err) {
       if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired')) {
-        // Token expired on initial load — sign out cleanly so user just logs in again
-        signOut()
-        return
+        signOut(); return
       }
-      // Non-auth failure: fall back to localStorage so app still works offline
       console.warn('DB sync failed:', err.message)
       setTours(ls.get('vb_tours', [])); setVenues(ls.get('vb_venues', []))
       setSavedVenues(ls.get('vb_saved_venues', [])); setSavedArtists(ls.get('vb_saved_artists', []))
@@ -177,13 +174,7 @@ export default function App() {
         try {
           const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${resp.access_token}` } })
           const user = await r.json()
-          const authData = {
-            accessToken: resp.access_token,
-            email: user.email,
-            name: user.name || user.email,
-            picture: user.picture,
-            expiresAt: Date.now() + resp.expires_in * 1000,
-          }
+          const authData = { accessToken: resp.access_token, email: user.email, name: user.name || user.email, picture: user.picture, expiresAt: Date.now() + resp.expires_in * 1000 }
           setAuth(authData); setDbReady(false)
           ls.set('vb_auth', authData)
         } catch (e) { console.error('Failed to get user info:', e) }
@@ -193,54 +184,21 @@ export default function App() {
   }, [gisReady])
 
   const getToken = useCallback(() => auth?.accessToken || null, [auth])
-
-  // persist: on 401, just sign out silently — no banner
   const persist = useCallback((fn) => {
     fn().catch(err => {
-      if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired')) {
-        signOut() // Token expired mid-session — sign out, user logs back in
-      } else {
-        console.warn('DB write failed:', err.message)
-      }
+      if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired'))
+        signOut()
+      else console.warn('DB write failed:', err.message)
     })
   }, [signOut])
 
-  // ── Data mutations ────────────────────────────────────────────────────────
-  const addTour = (d) => {
-    const t = { ...d, id: `t_${Date.now()}`, createdAt: new Date().toISOString() }
-    setTours(prev => [...prev, t]); persist(() => db.upsert('tours', t, getToken()))
-  }
-  const updateTour = (id, d) => {
-    setTours(prev => {
-      const updated = prev.map(x => x.id === id ? { ...x, ...d } : x)
-      persist(() => db.upsert('tours', updated.find(x => x.id === id), getToken()))
-      return updated
-    })
-  }
-  const deleteTour = (id) => {
-    setTours(t => t.filter(x => x.id !== id)); setVenues(v => v.filter(x => x.tourId !== id))
-    if (currentTourId === id) setCurrentTourId(null)
-    persist(() => db.delete('tours', id, getToken()))
-  }
-  const addVenue = (d) => {
-    const { _saveToLib, ...venueData } = d
-    const v = { ...venueData, id: `v_${Date.now()}`, status: 'pending', createdAt: new Date().toISOString() }
-    setVenues(prev => [...prev, v]); persist(() => db.upsert('venues', v, getToken()))
-    if (_saveToLib) {
-      const entry = { id: `sv_${Date.now()}`, venueName: d.venueName, city: d.city, contactName: d.contactName, contactEmail: d.contactEmail, capacity: d.capacity, notes: d.notes }
-      setSavedVenues(prev => [...prev, entry]); persist(() => db.upsert('saved_venues', entry, getToken()))
-    }
-  }
-  const updateVenue = (id, d) => {
-    setVenues(prev => {
-      const updated = prev.map(x => x.id === id ? { ...x, ...d } : x)
-      persist(() => db.upsert('venues', updated.find(x => x.id === id), getToken()))
-      return updated
-    })
-  }
+  const addTour = (d) => { const t = { ...d, id: `t_${Date.now()}`, createdAt: new Date().toISOString() }; setTours(prev => [...prev, t]); persist(() => db.upsert('tours', t, getToken())) }
+  const updateTour = (id, d) => { setTours(prev => { const updated = prev.map(x => x.id === id ? { ...x, ...d } : x); persist(() => db.upsert('tours', updated.find(x => x.id === id), getToken())); return updated }) }
+  const deleteTour = (id) => { setTours(t => t.filter(x => x.id !== id)); setVenues(v => v.filter(x => x.tourId !== id)); if (currentTourId === id) setCurrentTourId(null); persist(() => db.delete('tours', id, getToken())) }
+  const addVenue = (d) => { const { _saveToLib, ...venueData } = d; const v = { ...venueData, id: `v_${Date.now()}`, status: 'pending', createdAt: new Date().toISOString() }; setVenues(prev => [...prev, v]); persist(() => db.upsert('venues', v, getToken())); if (_saveToLib) { const entry = { id: `sv_${Date.now()}`, venueName: d.venueName, city: d.city, contactName: d.contactName, contactEmail: d.contactEmail, capacity: d.capacity, notes: d.notes }; setSavedVenues(prev => [...prev, entry]); persist(() => db.upsert('saved_venues', entry, getToken())) } }
+  const updateVenue = (id, d) => { setVenues(prev => { const updated = prev.map(x => x.id === id ? { ...x, ...d } : x); persist(() => db.upsert('venues', updated.find(x => x.id === id), getToken())); return updated }) }
   const deleteVenue   = (id) => { setVenues(v => v.filter(x => x.id !== id)); persist(() => db.delete('venues', id, getToken())) }
   const markEmailSent = (id) => updateVenue(id, { status: 'email_sent', emailSentAt: new Date().toISOString() })
-
   const saveTemplate   = (t) => { setCustomTemplates(prev => { const e = prev.find(x => x.id === t.id); persist(() => db.upsert('email_templates', t, getToken())); return e ? prev.map(x => x.id === t.id ? t : x) : [...prev, t] }) }
   const deleteTemplate = (id) => { setCustomTemplates(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('email_templates', id, getToken())) }
   const saveSavedVenue   = (v) => { setSavedVenues(prev => { const e = prev.find(x => x.id === v.id); const entry = e ? v : { ...v, id: `sv_${Date.now()}` }; persist(() => db.upsert('saved_venues', entry, getToken())); return e ? prev.map(x => x.id === v.id ? entry : x) : [...prev, entry] }) }
@@ -250,7 +208,6 @@ export default function App() {
   const saveSurveyLink   = (l) => { setSurveyLinks(prev => { const e = prev.find(x => x.id === l.id); const entry = e ? l : { ...l, id: `sl_${Date.now()}`, createdAt: new Date().toISOString() }; persist(() => db.upsert('survey_links', entry, getToken())); return e ? prev.map(x => x.id === l.id ? entry : x) : [...prev, entry] }) }
   const deleteSurveyLink = (id) => { setSurveyLinks(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('survey_links', id, getToken())) }
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
   const handleNav = (key) => {
     if (key === 'tours') { setCurrentTourId(null); setDesktopSection(null); return }
     if (isDesktop && SECTION_KEYS.includes(key)) { setDesktopSection(key); setCurrentTourId(null); return }
@@ -262,7 +219,6 @@ export default function App() {
   }
 
   const handleSelectTour = (id) => { setDesktopSection(null); setCurrentTourId(id) }
-
   const close = () => setModal(null)
   const currentTour   = tours.find(t => t.id === currentTourId)
   const currentVenues = venues.filter(v => v.tourId === currentTourId)
@@ -273,16 +229,15 @@ export default function App() {
   if (!dbReady) {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', gap: '16px' }}>
-        <div style={{ fontSize: '40px' }}>🎵</div>
+        <VenBookLogo size={52} />
         <div className="spinner" />
-        <div style={{ fontSize: '14px', color: 'var(--text-2)' }}>Loading your data…</div>
+        <div style={{ fontSize: '14px', color: 'var(--text-2)', fontWeight: '500' }}>Loading VenBook...</div>
       </div>
     )
   }
 
   return (
     <div className="app">
-      {/* No session-expired banner — expired token just signs you out */}
       <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} auth={auth} onNav={handleNav} onSignOut={signOut} />
       <DesktopSidebar auth={auth} currentPage={sidebarPage} onNav={handleNav} onSignOut={signOut} />
 
@@ -290,21 +245,12 @@ export default function App() {
         {isDesktop && desktopSection ? (
           <DesktopSection
             section={desktopSection}
-            savedVenues={savedVenues}
-            savedVenuesSave={saveSavedVenue}
-            savedVenuesDelete={deleteSavedVenue}
-            savedArtists={savedArtists}
-            savedArtistsSave={saveSavedArtist}
-            savedArtistsDelete={deleteSavedArtist}
-            customTemplates={customTemplates}
-            defaultTemplates={DEFAULT_TEMPLATES}
-            onSaveTemplate={saveTemplate}
-            onDeleteTemplate={deleteTemplate}
-            surveyLinks={surveyLinks}
-            surveyLinksSave={saveSurveyLink}
-            surveyLinksDelete={deleteSurveyLink}
-            auth={auth}
-            onSignOut={signOut}
+            savedVenues={savedVenues} savedVenuesSave={saveSavedVenue} savedVenuesDelete={deleteSavedVenue}
+            savedArtists={savedArtists} savedArtistsSave={saveSavedArtist} savedArtistsDelete={deleteSavedArtist}
+            customTemplates={customTemplates} defaultTemplates={DEFAULT_TEMPLATES}
+            onSaveTemplate={saveTemplate} onDeleteTemplate={deleteTemplate}
+            surveyLinks={surveyLinks} surveyLinksSave={saveSurveyLink} surveyLinksDelete={deleteSurveyLink}
+            auth={auth} onSignOut={signOut}
           />
         ) : currentTourId ? (
           <VenueList
