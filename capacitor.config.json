@@ -1,0 +1,25 @@
+{
+  "appId": "com.venbook.app",
+  "appName": "VenBook",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "GoogleAuth": {
+      "clientId": "496348736505-8p6p3mpnebdpe32it4e1fvc7hvv96alc.apps.googleusercontent.com",
+      "iosClientId": "496348736505-rasrpncbc5ln5lhimb33t9pnk51ednju.apps.googleusercontent.com",
+      "scopes": [
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/gmail.send"
+      ],
+      "serverClientId": "496348736505-8p6p3mpnebdpe32it4e1fvc7hvv96alc.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    },
+    "StatusBar": {
+      "style": "Default",
+      "backgroundColor": "#FFFFFF"
+    }
+  }
+}
