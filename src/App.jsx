@@ -52,16 +52,13 @@ export const DEFAULT_TEMPLATES = [
   },
 ]
 
-// Section keys that get full-page treatment on desktop
 const SECTION_KEYS = ['saved-venues', 'saved-artists', 'templates', 'survey', 'settings']
 
 export default function App() {
   const [gisReady, setGisReady] = useState(false)
   const [auth, setAuth]         = useState(() => ls.get('vb_auth', null))
   const [dbReady, setDbReady]   = useState(false)
-  const [needsReAuth, setNeedsReAuth] = useState(false)
 
-  // Desktop detection — reactive to window resize
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   useEffect(() => {
     const handler = () => setIsDesktop(window.innerWidth >= 768)
@@ -78,12 +75,11 @@ export default function App() {
   const [savedArtists,    setSavedArtists]    = useState([])
   const [surveyLinks,     setSurveyLinks]     = useState([])
 
-  const [currentTourId,   setCurrentTourId]   = useState(null)
-  const [desktopSection,  setDesktopSection]  = useState(null) // active full-page section on desktop
-  const [modal,           setModal]           = useState(null)
-  const [drawerOpen,      setDrawerOpen]      = useState(false)
+  const [currentTourId,  setCurrentTourId]  = useState(null)
+  const [desktopSection, setDesktopSection] = useState(null)
+  const [modal,          setModal]          = useState(null)
+  const [drawerOpen,     setDrawerOpen]     = useState(false)
 
-  // Mobile-only sheet visibility
   const [showSavedVenues,  setShowSavedVenues]  = useState(false)
   const [showSavedArtists, setShowSavedArtists] = useState(false)
   const [showTemplates,    setShowTemplates]    = useState(false)
@@ -117,6 +113,14 @@ export default function App() {
     if (remote.settings?.sheetId    != null) setSheetId(remote.settings.sheetId)
   }, [])
 
+  // ── Clean sign-out: called when token is expired/invalid ─────────────────
+  const signOut = useCallback(() => {
+    localStorage.removeItem('vb_auth')
+    setAuth(null); setCurrentTourId(null); setModal(null)
+    setDrawerOpen(false); setDbReady(false)
+    setDesktopSection(null); setTours([]); setVenues([])
+  }, [])
+
   const syncFromDB = useCallback(async (token) => {
     if (!token) { setDbReady(true); return }
     try {
@@ -144,17 +148,19 @@ export default function App() {
       }
     } catch (err) {
       if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired')) {
-        setNeedsReAuth(true)
-      } else {
-        console.warn('DB sync failed:', err.message)
-        setTours(ls.get('vb_tours', [])); setVenues(ls.get('vb_venues', []))
-        setSavedVenues(ls.get('vb_saved_venues', [])); setSavedArtists(ls.get('vb_saved_artists', []))
-        setCustomTemplates(ls.get('vb_templates', []))
-        setSurveyLink(localStorage.getItem('vb_survey') || '')
-        setSheetId(localStorage.getItem('vb_sheet_id') || '')
+        // Token expired on initial load — sign out cleanly so user just logs in again
+        signOut()
+        return
       }
+      // Non-auth failure: fall back to localStorage so app still works offline
+      console.warn('DB sync failed:', err.message)
+      setTours(ls.get('vb_tours', [])); setVenues(ls.get('vb_venues', []))
+      setSavedVenues(ls.get('vb_saved_venues', [])); setSavedArtists(ls.get('vb_saved_artists', []))
+      setCustomTemplates(ls.get('vb_templates', []))
+      setSurveyLink(localStorage.getItem('vb_survey') || '')
+      setSheetId(localStorage.getItem('vb_sheet_id') || '')
     } finally { setDbReady(true) }
-  }, [applyRemote])
+  }, [applyRemote, signOut])
 
   useEffect(() => {
     if (auth?.accessToken) syncFromDB(auth.accessToken)
@@ -171,8 +177,14 @@ export default function App() {
         try {
           const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${resp.access_token}` } })
           const user = await r.json()
-          const authData = { accessToken: resp.access_token, email: user.email, name: user.name || user.email, picture: user.picture, expiresAt: Date.now() + resp.expires_in * 1000 }
-          setAuth(authData); setNeedsReAuth(false); setDbReady(false)
+          const authData = {
+            accessToken: resp.access_token,
+            email: user.email,
+            name: user.name || user.email,
+            picture: user.picture,
+            expiresAt: Date.now() + resp.expires_in * 1000,
+          }
+          setAuth(authData); setDbReady(false)
           ls.set('vb_auth', authData)
         } catch (e) { console.error('Failed to get user info:', e) }
       },
@@ -180,23 +192,20 @@ export default function App() {
     client.requestAccessToken()
   }, [gisReady])
 
-  const signOut = () => {
-    localStorage.removeItem('vb_auth')
-    setAuth(null); setCurrentTourId(null); setModal(null)
-    setDrawerOpen(false); setDbReady(false); setNeedsReAuth(false)
-    setDesktopSection(null); setTours([]); setVenues([])
-  }
-
   const getToken = useCallback(() => auth?.accessToken || null, [auth])
+
+  // persist: on 401, just sign out silently — no banner
   const persist = useCallback((fn) => {
     fn().catch(err => {
-      if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired'))
-        setNeedsReAuth(true)
-      else console.warn('DB write failed:', err.message)
+      if (err.status === 401 || err.message?.includes('Invalid') || err.message?.includes('expired')) {
+        signOut() // Token expired mid-session — sign out, user logs back in
+      } else {
+        console.warn('DB write failed:', err.message)
+      }
     })
-  }, [])
+  }, [signOut])
 
-  // ── Data mutations ───────────────────────────────────────────────────────
+  // ── Data mutations ────────────────────────────────────────────────────────
   const addTour = (d) => {
     const t = { ...d, id: `t_${Date.now()}`, createdAt: new Date().toISOString() }
     setTours(prev => [...prev, t]); persist(() => db.upsert('tours', t, getToken()))
@@ -213,7 +222,6 @@ export default function App() {
     if (currentTourId === id) setCurrentTourId(null)
     persist(() => db.delete('tours', id, getToken()))
   }
-
   const addVenue = (d) => {
     const { _saveToLib, ...venueData } = d
     const v = { ...venueData, id: `v_${Date.now()}`, status: 'pending', createdAt: new Date().toISOString() }
@@ -235,30 +243,17 @@ export default function App() {
 
   const saveTemplate   = (t) => { setCustomTemplates(prev => { const e = prev.find(x => x.id === t.id); persist(() => db.upsert('email_templates', t, getToken())); return e ? prev.map(x => x.id === t.id ? t : x) : [...prev, t] }) }
   const deleteTemplate = (id) => { setCustomTemplates(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('email_templates', id, getToken())) }
-
   const saveSavedVenue   = (v) => { setSavedVenues(prev => { const e = prev.find(x => x.id === v.id); const entry = e ? v : { ...v, id: `sv_${Date.now()}` }; persist(() => db.upsert('saved_venues', entry, getToken())); return e ? prev.map(x => x.id === v.id ? entry : x) : [...prev, entry] }) }
   const deleteSavedVenue = (id) => { setSavedVenues(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_venues', id, getToken())) }
-
   const saveSavedArtist   = (a) => { setSavedArtists(prev => { const e = prev.find(x => x.id === a.id); const entry = e ? a : { ...a, id: `sa_${Date.now()}` }; persist(() => db.upsert('saved_artists', entry, getToken())); return e ? prev.map(x => x.id === a.id ? entry : x) : [...prev, entry] }) }
   const deleteSavedArtist = (id) => { setSavedArtists(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_artists', id, getToken())) }
-
   const saveSurveyLink   = (l) => { setSurveyLinks(prev => { const e = prev.find(x => x.id === l.id); const entry = e ? l : { ...l, id: `sl_${Date.now()}`, createdAt: new Date().toISOString() }; persist(() => db.upsert('survey_links', entry, getToken())); return e ? prev.map(x => x.id === l.id ? entry : x) : [...prev, entry] }) }
   const deleteSurveyLink = (id) => { setSurveyLinks(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('survey_links', id, getToken())) }
 
-  // ── Navigation ───────────────────────────────────────────────────────────
+  // ── Navigation ─────────────────────────────────────────────────────────────
   const handleNav = (key) => {
-    if (key === 'tours') {
-      setCurrentTourId(null)
-      setDesktopSection(null)
-      return
-    }
-    if (isDesktop && SECTION_KEYS.includes(key)) {
-      // Desktop: open as full page in main content area
-      setDesktopSection(key)
-      setCurrentTourId(null) // leave any open tour
-      return
-    }
-    // Mobile: use bottom sheets
+    if (key === 'tours') { setCurrentTourId(null); setDesktopSection(null); return }
+    if (isDesktop && SECTION_KEYS.includes(key)) { setDesktopSection(key); setCurrentTourId(null); return }
     if (key === 'saved-venues')  { setShowSavedVenues(true);  return }
     if (key === 'saved-artists') { setShowSavedArtists(true); return }
     if (key === 'templates')     { setShowTemplates(true);    return }
@@ -266,11 +261,7 @@ export default function App() {
     if (key === 'settings')      { setModal({ type: 'settings' }); return }
   }
 
-  // Clicking a tour on desktop clears any open section
-  const handleSelectTour = (id) => {
-    setDesktopSection(null)
-    setCurrentTourId(id)
-  }
+  const handleSelectTour = (id) => { setDesktopSection(null); setCurrentTourId(id) }
 
   const close = () => setModal(null)
   const currentTour   = tours.find(t => t.id === currentTourId)
@@ -291,50 +282,27 @@ export default function App() {
 
   return (
     <div className="app">
-      {needsReAuth && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 500, background: '#DC2626', color: 'white', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', fontWeight: '500' }}>
-          <span>Session expired — your changes may not be saving.</span>
-          <button onClick={signIn} style={{ background: 'white', color: '#DC2626', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>
-            Re-authenticate
-          </button>
-        </div>
-      )}
-
-      {/* Mobile-only drawer */}
+      {/* No session-expired banner — expired token just signs you out */}
       <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} auth={auth} onNav={handleNav} onSignOut={signOut} />
-
-      {/* Desktop sidebar */}
       <DesktopSidebar auth={auth} currentPage={sidebarPage} onNav={handleNav} onSignOut={signOut} />
 
-      {/* Main content area */}
       <div className="desktop-main">
-        {/* Desktop: show section page when a sidebar item is active */}
         {isDesktop && desktopSection ? (
           <DesktopSection
             section={desktopSection}
-            // Saved venues
             savedVenues={savedVenues}
-            onSave={saveSavedVenue}
-            onDelete={deleteSavedVenue}
-            // Saved artists
-            savedArtists={savedArtists}
-            onSave={saveSavedVenue}   // overridden per-section inside DesktopSection
-            onDelete={deleteSavedVenue}
-            // For each section we pass all data; DesktopSection uses what it needs
             savedVenuesSave={saveSavedVenue}
             savedVenuesDelete={deleteSavedVenue}
+            savedArtists={savedArtists}
             savedArtistsSave={saveSavedArtist}
             savedArtistsDelete={deleteSavedArtist}
-            // Templates
             customTemplates={customTemplates}
             defaultTemplates={DEFAULT_TEMPLATES}
             onSaveTemplate={saveTemplate}
             onDeleteTemplate={deleteTemplate}
-            // Survey links
             surveyLinks={surveyLinks}
             surveyLinksSave={saveSurveyLink}
             surveyLinksDelete={deleteSurveyLink}
-            // Account
             auth={auth}
             onSignOut={signOut}
           />
@@ -363,7 +331,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Modals */}
       {modal?.type === 'tour' && (
         <TourModal tour={modal.data} templates={allTemplates} savedArtists={savedArtists} surveyLinks={surveyLinks}
           onSave={(d) => { modal.data ? updateTour(modal.data.id, d) : addTour(d); close() }}
@@ -395,7 +362,6 @@ export default function App() {
       {modal?.type === 'survey' && <SurveyModal venue={modal.data} onClose={close} />}
       {modal?.type === 'settings' && <SettingsModal auth={auth} onSignOut={signOut} onClose={close} />}
 
-      {/* Mobile-only sheets */}
       {showSavedVenues  && <SavedVenuesSheet  savedVenues={savedVenues}   onSave={saveSavedVenue}   onDelete={deleteSavedVenue}   onClose={() => setShowSavedVenues(false)} />}
       {showSavedArtists && <SavedArtistsSheet savedArtists={savedArtists} onSave={saveSavedArtist}  onDelete={deleteSavedArtist}  onClose={() => setShowSavedArtists(false)} />}
       {showTemplates    && <EmailTemplatesSheet customTemplates={customTemplates} defaultTemplates={DEFAULT_TEMPLATES} onSaveTemplate={saveTemplate} onDeleteTemplate={deleteTemplate} onClose={() => setShowTemplates(false)} />}
