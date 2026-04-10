@@ -38,6 +38,9 @@ body {
 .app { height: 100vh; height: 100dvh; overflow: hidden; }
 .screen { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
+/* On mobile, desktop-main just fills the full app height */
+.desktop-main { height: 100vh; height: 100dvh; overflow: hidden; }
+
 /* ====== HEADER ====== */
 .header {
   display: flex; align-items: center; gap: 4px;
@@ -141,27 +144,18 @@ body {
 
 /* ====== DESKTOP SIDEBAR ====== */
 .desktop-sidebar {
-  display: none; /* hidden on mobile */
-  width: var(--sidebar-width);
-  flex-shrink: 0;
-  height: 100vh;
-  background: #1A1A2E;
-  flex-direction: column;
-  padding: 0;
+  display: none;
+  width: var(--sidebar-width); flex-shrink: 0; height: 100vh;
+  background: #1A1A2E; flex-direction: column; padding: 0;
   border-right: 1px solid rgba(255,255,255,0.05);
-  position: relative;
-  z-index: 10;
+  position: relative; z-index: 10;
 }
-
 .ds-brand {
   display: flex; align-items: center; gap: 10px;
-  padding: 22px 20px 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  flex-shrink: 0;
+  padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
 }
 .ds-brand-icon { font-size: 22px; }
 .ds-brand-name { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
-
 .ds-nav { display: flex; flex-direction: column; padding: 10px 10px; gap: 2px; flex: 1; overflow-y: auto; }
 .ds-nav-item {
   display: flex; align-items: center; gap: 11px;
@@ -172,83 +166,43 @@ body {
 }
 .ds-nav-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
 .ds-nav-item.active { background: rgba(124,58,237,0.25); color: #C4B5FD; }
-.ds-nav-item.active .ds-nav-icon { opacity: 1; }
 .ds-nav-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; opacity: 0.7; }
 .ds-nav-label { flex: 1; }
-
 .ds-spacer { flex: 1; min-height: 16px; }
-
-.ds-footer {
-  padding: 10px 10px;
-  border-top: 1px solid rgba(255,255,255,0.07);
-  display: flex; flex-direction: column; gap: 4px;
-}
-.ds-user {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
-}
+.ds-footer { padding: 10px 10px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; gap: 4px; }
+.ds-user { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; }
 .ds-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .ds-user-info { min-width: 0; flex: 1; }
 .ds-user-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ds-user-email { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .ds-signout {
   margin: 4px 0 0; padding: 9px 12px; border: none; border-radius: 10px;
-  background: rgba(239,68,68,0.12); color: #FCA5A5;
-  font-size: 13px; font-weight: 600; cursor: pointer; text-align: center;
+  background: rgba(239,68,68,0.12); color: #FCA5A5; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center;
 }
 .ds-signout:hover { background: rgba(239,68,68,0.2); }
 
-/* ====== DESKTOP MAIN CONTENT OVERRIDES ====== */
-.desktop-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
-/* Desktop top bar (replaces mobile header on tours page) */
-.desktop-topbar {
-  display: none;
-  align-items: center; justify-content: space-between;
-  padding: 20px 28px 0;
-  flex-shrink: 0;
-}
+/* ====== DESKTOP DASHBOARD ELEMENTS (hidden on mobile) ====== */
+.desktop-topbar { display: none; align-items: center; justify-content: space-between; padding: 20px 28px 0; flex-shrink: 0; }
 .desktop-topbar-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
 .desktop-topbar-right { display: flex; align-items: center; gap: 10px; }
 
-/* Desktop stats row */
-.desktop-stats {
-  display: none;
-  gap: 16px;
-  padding: 16px 28px;
-  flex-shrink: 0;
-}
+.desktop-stats { display: none; gap: 16px; padding: 16px 28px; flex-shrink: 0; }
 .desktop-stat-card {
   flex: 1; background: var(--surface); border-radius: 14px;
-  padding: 18px 20px; box-shadow: var(--shadow);
-  display: flex; flex-direction: column; gap: 4px;
+  padding: 18px 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 4px;
 }
 .desktop-stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
 .desktop-stat-label { font-size: 12px; color: var(--text-2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
-.desktop-stat-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
 
-/* Desktop tour grid */
-.desktop-tour-grid {
-  display: none;
-}
-.desktop-search-bar {
-  display: none;
-  align-items: center; gap: 10px;
-  padding: 0 28px 14px;
-  flex-shrink: 0;
-}
+/* CRITICAL: never set display on .desktop-tour-grid inline — it would override display:none on mobile */
+.desktop-tour-grid { display: none; }
+.desktop-search-bar { display: none; align-items: center; gap: 10px; padding: 0 28px 14px; flex-shrink: 0; }
+
+/* Empty state inside the desktop grid — uses grid column span so it doesn't need its own display */
+.desktop-empty-center { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; padding-top: 40px; }
 
 /* ====== SAVED ITEMS ====== */
-.saved-item-card {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--bg); border-radius: 12px; padding: 12px 14px;
-}
+.saved-item-card { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 12px; padding: 12px 14px; }
 .saved-item-info { flex: 1; min-width: 0; }
 .saved-item-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .saved-item-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -268,18 +222,13 @@ body {
 .artist-chip:active { opacity: 0.8; }
 
 /* ====== STATS STRIP (mobile) ====== */
-.stats-strip {
-  display: flex; overflow-x: auto; gap: 0;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  padding: 0; flex-shrink: 0; scrollbar-width: none;
-}
+.stats-strip { display: flex; overflow-x: auto; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0; flex-shrink: 0; scrollbar-width: none; }
 .stats-strip::-webkit-scrollbar { display: none; }
 .stat-chip {
   display: flex; flex-direction: column; align-items: center;
   padding: 10px 0; flex: 1; min-width: 72px;
   cursor: pointer; font-size: 12px; color: var(--text-2);
-  border-bottom: 2px solid transparent; transition: border-color 0.15s;
-  gap: 1px; white-space: nowrap;
+  border-bottom: 2px solid transparent; transition: border-color 0.15s; gap: 1px; white-space: nowrap;
 }
 .stat-chip.active { border-bottom-color: var(--accent); color: var(--accent); }
 .stat-chip span { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.2; }
@@ -287,10 +236,7 @@ body {
 
 /* ====== SEARCH BAR ====== */
 .search-wrap { padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.search-input-wrap {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg); border-radius: 10px; padding: 8px 12px;
-}
+.search-input-wrap { display: flex; align-items: center; gap: 8px; background: var(--bg); border-radius: 10px; padding: 8px 12px; }
 .search-icon-inner { font-size: 14px; color: var(--text-3); flex-shrink: 0; }
 .search-input { border: none; outline: none; font-size: 16px; background: transparent; flex: 1; color: var(--text); min-width: 0; }
 .search-input::placeholder { color: var(--text-3); }
@@ -301,12 +247,7 @@ body {
 .card-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
 
 /* ====== TOUR CARD ====== */
-.tour-card {
-  background: var(--surface); border-radius: var(--radius);
-  box-shadow: var(--shadow); overflow: hidden;
-  display: flex; align-items: stretch; cursor: pointer;
-  transition: transform 0.12s; user-select: none;
-}
+.tour-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; display: flex; align-items: stretch; cursor: pointer; transition: transform 0.12s; user-select: none; }
 .tour-card:active { transform: scale(0.98); }
 .tour-card-bar { width: 5px; flex-shrink: 0; }
 .tour-card-body { flex: 1; padding: 14px 12px; min-width: 0; }
@@ -321,11 +262,7 @@ body {
 .tour-card-arrow { display: flex; align-items: center; padding-right: 14px; font-size: 24px; color: var(--text-3); flex-shrink: 0; }
 
 /* ====== VENUE CARD ====== */
-.venue-card {
-  background: var(--surface); border-radius: var(--radius);
-  box-shadow: var(--shadow); overflow: hidden; cursor: pointer;
-  transition: transform 0.12s;
-}
+.venue-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; cursor: pointer; transition: transform 0.12s; }
 .venue-card:active { transform: scale(0.99); }
 .venue-card-main { display: flex; align-items: center; padding: 14px 16px; gap: 12px; min-height: 68px; }
 .venue-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
@@ -339,12 +276,7 @@ body {
 @keyframes expandIn { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: translateY(0) } }
 .venue-notes { font-size: 13px; color: var(--text-2); padding: 10px 0 10px; line-height: 1.4; }
 .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.action-chip {
-  display: flex; align-items: center; gap: 4px;
-  padding: 8px 14px; border-radius: 20px; border: none;
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: opacity 0.1s; white-space: nowrap;
-}
+.action-chip { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-radius: 20px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.1s; white-space: nowrap; }
 .action-chip:active { opacity: 0.7; }
 .action-email  { background: #DBEAFE; color: #1D4ED8; }
 .action-survey { background: #D1FAE5; color: #065F46; }
@@ -352,20 +284,12 @@ body {
 .action-delete { background: #FEE2E2; color: #DC2626; padding: 8px 12px; }
 
 /* ====== VENUE SELECT CHECKBOX ====== */
-.venue-checkbox {
-  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-  border: 2px solid var(--border); background: var(--surface);
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
+.venue-checkbox { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
 .venue-checkbox.checked { background: var(--accent); border-color: var(--accent); }
 .venue-checkbox.checked::after { content: '✓'; color: white; font-size: 12px; font-weight: 700; line-height: 1; }
 
 /* ====== BULK ACTION BAR ====== */
-.bulk-bar {
-  position: fixed; bottom: calc(12px + var(--safe-bottom));
-  left: 0; right: 0; padding: 0 20px; z-index: 20;
-}
+.bulk-bar { position: fixed; bottom: calc(12px + var(--safe-bottom)); left: 0; right: 0; padding: 0 20px; z-index: 20; }
 
 /* ====== EMPTY STATE ====== */
 .empty { text-align: center; padding: 60px 24px; }
@@ -374,39 +298,19 @@ body {
 .empty p { font-size: 14px; color: var(--text-2); margin-bottom: 20px; }
 
 /* ====== BUTTONS ====== */
-.btn-primary {
-  background: var(--accent); color: white; border: none;
-  padding: 13px 24px; border-radius: 12px; font-size: 15px;
-  font-weight: 600; cursor: pointer; transition: opacity 0.12s;
-  white-space: nowrap; display: inline-block;
-}
+.btn-primary { background: var(--accent); color: white; border: none; padding: 13px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.12s; white-space: nowrap; display: inline-block; }
 .btn-primary:active { opacity: 0.8; }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-ghost {
-  background: transparent; color: var(--text-2);
-  border: 1.5px solid var(--border);
-  padding: 13px 24px; border-radius: 12px; font-size: 15px;
-  font-weight: 500; cursor: pointer;
-}
+.btn-ghost { background: transparent; color: var(--text-2); border: 1.5px solid var(--border); padding: 13px 24px; border-radius: 12px; font-size: 15px; font-weight: 500; cursor: pointer; }
 .btn-ghost:active { background: var(--bg); }
-.btn-secondary {
-  background: var(--accent-light); color: var(--accent); border: none;
-  padding: 13px 20px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
-}
+.btn-secondary { background: var(--accent-light); color: var(--accent); border: none; padding: 13px 20px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
 .btn-secondary:active { opacity: 0.8; }
-.btn-danger {
-  background: #FEE2E2; color: var(--danger); border: none;
-  padding: 13px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
-}
-.btn-sm-ghost {
-  background: transparent; border: 1px solid var(--border); color: var(--text-2);
-  padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
-}
+.btn-danger { background: #FEE2E2; color: var(--danger); border: none; padding: 13px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-sm-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-2); padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; }
 
 /* ====== FAB ====== */
 .fab {
-  position: fixed; right: 20px;
-  bottom: calc(24px + var(--safe-bottom));
+  position: fixed; right: 20px; bottom: calc(24px + var(--safe-bottom));
   width: 56px; height: 56px;
   background: var(--accent); color: white; border: none;
   border-radius: 50%; font-size: 28px; font-weight: 300; cursor: pointer;
@@ -417,51 +321,24 @@ body {
 .fab:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(124,58,237,0.35); }
 
 /* ====== BOTTOM SHEET ====== */
-.sheet-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-  z-index: 100; display: flex; flex-direction: column; justify-content: flex-end;
-  animation: fadeIn 0.18s ease;
-}
+.sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: flex; flex-direction: column; justify-content: flex-end; animation: fadeIn 0.18s ease; }
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-.bottom-sheet {
-  background: var(--surface); border-radius: 20px 20px 0 0;
-  max-height: 85vh; display: flex; flex-direction: column;
-  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
-  padding-bottom: calc(4px + var(--safe-bottom));
-}
+.bottom-sheet { background: var(--surface); border-radius: 20px 20px 0 0; max-height: 85vh; display: flex; flex-direction: column; animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1); padding-bottom: calc(4px + var(--safe-bottom)); }
 .bottom-sheet-tall { max-height: 93vh; }
 @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
 .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 10px auto 2px; flex-shrink: 0; }
-.sheet-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 20px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border);
-}
+.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
 .sheet-header h2 { font-size: 17px; font-weight: 600; }
-.close-btn {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--bg); border: none; font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; color: var(--text-2); line-height: 1;
-}
+.close-btn { width: 28px; height: 28px; border-radius: 50%; background: var(--bg); border: none; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-2); line-height: 1; }
 .sheet-body { padding: 16px 20px 8px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.sheet-footer {
-  display: flex; gap: 10px; padding: 12px 20px;
-  border-top: 1px solid var(--border); flex-shrink: 0;
-}
+.sheet-footer { display: flex; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .sheet-footer .btn-primary { flex: 1; text-align: center; }
 .sheet-footer .btn-ghost { flex: 1; text-align: center; }
 
 /* ====== SETTINGS TABS ====== */
-.settings-tabs {
-  display: flex; border-bottom: 1px solid var(--border);
-  padding: 0 16px; gap: 0; flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
-}
+.settings-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 16px; gap: 0; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
 .settings-tabs::-webkit-scrollbar { display: none; }
-.settings-tab {
-  padding: 10px 14px; border: none; background: none; cursor: pointer;
-  font-size: 13px; font-weight: 500; color: var(--text-2);
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
-  transition: color 0.15s, border-color 0.15s; white-space: nowrap; flex-shrink: 0;
-}
+.settings-tab { padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; white-space: nowrap; flex-shrink: 0; }
 .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ====== TEMPLATE LIST ====== */
@@ -547,10 +424,11 @@ body {
 .login-note { font-size: 12px; color: var(--text-3); line-height: 1.5; }
 
 /* ====================================================
-   MOBILE BREAKPOINT (< 768px) — phone-sized centering
+   TABLET (520–767px) — phone-sized centering
    ==================================================== */
 @media (min-width: 520px) and (max-width: 767px) {
-  .app { max-width: 430px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.08); height: 100vh; height: 100dvh; }
+  .app { max-width: 430px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.08); }
+  .desktop-main { max-width: 430px; margin: 0 auto; }
   .fab { right: calc(max((100vw - 430px) / 2, 0px) + 20px); }
   .bulk-bar { max-width: 430px; left: 50%; transform: translateX(-50%); padding: 0 20px; }
   .sheet-overlay .bottom-sheet { max-width: 430px; margin: 0 auto; border-radius: 20px 20px 0 0; }
@@ -558,39 +436,23 @@ body {
 }
 
 /* ====================================================
-   DESKTOP BREAKPOINT (≥ 768px) — sidebar + dashboard
+   DESKTOP (≥ 768px) — sidebar + dashboard
    ==================================================== */
 @media (min-width: 768px) {
-  /* App becomes a flex row */
-  .app {
-    display: flex;
-    flex-direction: row;
-    max-width: none;
-    height: 100vh;
-  }
-
-  /* Show desktop sidebar */
+  .app { display: flex; flex-direction: row; max-width: none; height: 100vh; }
   .desktop-sidebar { display: flex; }
-
-  /* Hide mobile-only elements */
   .hamburger-btn { display: none !important; }
   .drawer-overlay { display: none !important; }
   .drawer { display: none !important; }
 
-  /* Main content wrapper */
   .desktop-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0; height: 100vh; height: 100dvh;
     background: var(--bg);
   }
 
-  /* Screen becomes full height inside main */
   .screen { height: 100vh; height: 100dvh; }
 
-  /* Show desktop tour grid elements */
   .desktop-topbar { display: flex; }
   .desktop-stats { display: flex; }
   .desktop-search-bar { display: flex; }
@@ -598,44 +460,27 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 14px;
-    padding: 0 28px;
+    padding: 0 28px 24px;
     overflow-y: auto;
     flex: 1;
     align-content: start;
-    padding-bottom: 24px;
   }
-
-  /* Hide mobile tour list when on desktop */
   .mobile-tour-list { display: none; }
 
-  /* Desktop tour card — bigger, cleaner */
-  .desktop-tour-grid .tour-card {
-    border-radius: 14px;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .desktop-tour-grid .tour-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-  }
+  .desktop-tour-grid .tour-card { border-radius: 14px; transition: transform 0.15s, box-shadow 0.15s; }
+  .desktop-tour-grid .tour-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
   .desktop-tour-grid .tour-card:active { transform: translateY(0) scale(0.99); }
 
-  /* Desktop venue list — more padding */
   .desktop-main .screen .card-list { padding: 16px 24px; }
   .desktop-main .screen .search-wrap { padding: 10px 24px; }
   .desktop-main .screen .stats-strip .stat-chip { padding: 12px 0; font-size: 13px; }
 
-  /* Fix FAB position on desktop */
   .fab { right: 28px; bottom: 28px; }
-
-  /* Bulk bar on desktop */
   .bulk-bar { left: calc(var(--sidebar-width) + 20px); right: 20px; padding: 0; }
 
-  /* Bottom sheets centered on desktop */
   .sheet-overlay { background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
   .sheet-overlay .bottom-sheet {
-    max-width: 520px; width: 100%;
-    border-radius: 20px;
-    max-height: 85vh;
+    max-width: 520px; width: 100%; border-radius: 20px; max-height: 85vh;
     animation: fadeScaleIn 0.2s cubic-bezier(0.32, 0.72, 0, 1);
   }
   @keyframes fadeScaleIn {
@@ -643,20 +488,8 @@ body {
     to   { opacity: 1; transform: scale(1) translateY(0); }
   }
 
-  /* Header on desktop screens (venue list, etc.) */
-  .desktop-main .screen .header {
-    padding-left: 24px;
-    padding-right: 24px;
-    padding-top: 16px;
-    min-height: 60px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* Desktop empty state */
+  .desktop-main .screen .header { padding-left: 24px; padding-right: 24px; padding-top: 16px; min-height: 60px; }
   .desktop-main .empty { padding: 80px 24px; }
-
-  /* Scrollbar styling */
   .desktop-tour-grid::-webkit-scrollbar { width: 5px; }
   .desktop-tour-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
