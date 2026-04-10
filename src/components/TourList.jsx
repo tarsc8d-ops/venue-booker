@@ -23,7 +23,6 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
       .sort((a, b) => new Date(a.showDate) - new Date(b.showDate))[0]
   }
 
-  // Global stats for desktop dashboard
   const totalVenues  = venues.length
   const emailedCount = venues.filter(v => v.status === 'email_sent' || v.status === 'confirmed').length
   const pendingCount = venues.filter(v => v.status === 'pending').length
@@ -42,11 +41,7 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
               <div className="tour-name">{tour.name}</div>
               {tour.artist && <div className="tour-artist">🎤 {tour.artist}</div>}
             </div>
-            <button
-              className="icon-btn-sm"
-              onClick={e => { e.stopPropagation(); onEditTour(tour) }}
-              aria-label="Edit tour"
-            >⋯</button>
+            <button className="icon-btn-sm" onClick={e => { e.stopPropagation(); onEditTour(tour) }} aria-label="Edit tour">⋯</button>
           </div>
           <div className="tour-card-stats">
             <div className="tour-stat">
@@ -72,8 +67,7 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
 
   return (
     <>
-      {/* ── DESKTOP LAYOUT ─────────────────────────────── */}
-      {/* Top bar */}
+      {/* ── DESKTOP LAYOUT — hidden on mobile via CSS ── */}
       <div className="desktop-topbar">
         <div className="desktop-topbar-title">Tours</div>
         <div className="desktop-topbar-right">
@@ -83,7 +77,6 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="desktop-stats">
         <div className="desktop-stat-card">
           <div className="desktop-stat-value">{tours.length}</div>
@@ -103,35 +96,33 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
         </div>
       </div>
 
-      {/* Search on desktop */}
       <div className="desktop-search-bar">
         <div className="search-input-wrap" style={{ flex: 1 }}>
           <span className="search-icon-inner">🔍</span>
-          <input
-            className="search-input" type="search" placeholder="Search tours…"
-            value={search} onChange={e => setSearch(e.target.value)}
-          />
+          <input className="search-input" type="search" placeholder="Search tours…"
+            value={search} onChange={e => setSearch(e.target.value)} />
           {search && <button className="clear-btn" onClick={() => setSearch('')}>×</button>}
         </div>
       </div>
 
-      {/* Desktop tour grid */}
-      {filtered.length === 0 ? (
-        <div className="desktop-tour-grid" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="empty">
-            <div className="empty-emoji">🎤</div>
-            <h3>{tours.length === 0 ? 'No tours yet' : 'No results'}</h3>
-            <p>{tours.length === 0 ? 'Create your first tour to get started.' : 'Try a different search.'}</p>
-            {tours.length === 0 && <button className="btn-primary" onClick={onAddTour}>+ Create First Tour</button>}
+      {/* IMPORTANT: never put inline display style on .desktop-tour-grid —
+          it would override the CSS display:none on mobile */}
+      <div className="desktop-tour-grid">
+        {filtered.length === 0 ? (
+          <div className="desktop-empty-center">
+            <div className="empty">
+              <div className="empty-emoji">🎤</div>
+              <h3>{tours.length === 0 ? 'No tours yet' : 'No results'}</h3>
+              <p>{tours.length === 0 ? 'Create your first tour to get started.' : 'Try a different search.'}</p>
+              {tours.length === 0 && <button className="btn-primary" onClick={onAddTour}>+ Create First Tour</button>}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="desktop-tour-grid">
-          {filtered.map(tour => <TourCard key={tour.id} tour={tour} />)}
-        </div>
-      )}
+        ) : (
+          filtered.map(tour => <TourCard key={tour.id} tour={tour} />)
+        )}
+      </div>
 
-      {/* ── MOBILE LAYOUT ──────────────────────────────── */}
+      {/* ── MOBILE LAYOUT — hidden on desktop via CSS ── */}
       <div className="mobile-tour-list screen">
         <div className="header">
           <button className="hamburger-btn" onClick={onOpenDrawer} aria-label="Open menu">
@@ -143,18 +134,15 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
           <button className="icon-btn" onClick={onOpenSettings} aria-label="Settings" style={{ width: '40px' }}>
             {auth?.picture
               ? <img src={auth.picture} className="avatar" alt={auth.name} onError={e => { e.target.style.display = 'none' }} />
-              : <span>⚙️</span>
-            }
+              : <span>⚙️</span>}
           </button>
         </div>
 
         <div className="search-wrap">
           <div className="search-input-wrap">
             <span className="search-icon-inner">🔍</span>
-            <input
-              className="search-input" type="search" placeholder="Search tours…"
-              value={search} onChange={e => setSearch(e.target.value)}
-            />
+            <input className="search-input" type="search" placeholder="Search tours…"
+              value={search} onChange={e => setSearch(e.target.value)} />
             {search && <button className="clear-btn" onClick={() => setSearch('')}>×</button>}
           </div>
         </div>
