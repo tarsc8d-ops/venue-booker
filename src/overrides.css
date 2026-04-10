@@ -1,3 +1,57 @@
-/* ====== Add empty-icon class and clean up emoji remnants ====== */
-/* This file is appended to index.css via a separate import in main.jsx */
-/* Actually we'll patch index.css directly */
+/* VenBook icon & empty state overrides */
+
+/* Replace emoji empty-emoji with SVG icon wrapper */
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: var(--text-3);
+}
+
+/* Hide old emoji-based empty-emoji class gracefully */
+.empty-emoji { display: none; }
+
+/* Hamburger button: use flex to center the SVG */
+.hamburger-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Remove old hamburger-icon lines (now SVG-based) */
+.hamburger-icon { display: none; }
+
+/* Drawer icon alignment */
+.drawer-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+
+/* Desktop sidebar icon alignment */
+.ds-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.ds-nav-item.active .ds-nav-icon { opacity: 1; }
+
+/* Action chips — tighter with SVG icons */
+.action-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Login screen icon fix */
+.login-icon { display: flex; justify-content: center; margin-bottom: 16px; }
