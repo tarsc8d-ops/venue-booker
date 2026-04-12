@@ -1,0 +1,6 @@
+<!-- Compact nav/header size, for dark sidebar -->
+<svg width="140" height="36" viewBox="0 0 140 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 8L14 28L24 8" stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="32" y="25" font-family="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" letter-spacing="-0.5" fill="white">Ven</text>
+  <text x="71" y="25" font-family="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="300" letter-spacing="-0.5" fill="rgba(255,255,255,0.55)">Book</text>
+</svg>

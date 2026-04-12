@@ -1,0 +1,7 @@
+<!-- Full lockup for dark backgrounds -->
+<svg width="230" height="56" viewBox="0 0 230 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="2" width="50" height="50" rx="14" fill="white" fill-opacity="0.12"/>
+  <path d="M13 16L25 42L37 16" stroke="white" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="62" y="37" font-family="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="-0.8" fill="white">Ven</text>
+  <text x="113" y="37" font-family="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" font-size="26" font-weight="300" letter-spacing="-0.8" fill="rgba(255,255,255,0.6)">Book</text>
+</svg>
