@@ -152,7 +152,7 @@ export default function TourList({ tours, venues, onSelectTour, onAddTour, onEdi
 
         <div className="mobile-analytics-grid">
           <div className="mobile-stat-card">
-            <div className="mobile-stat-value">{tours.filter((t) => !t._shared).length}</div>
+            <div className="mobile-stat-value mobile-stat-value--lime">{tours.filter((t) => !t._shared).length}</div>
             <div className="mobile-stat-label">Tours</div>
           </div>
           <div className="mobile-stat-card">
@@ -160,11 +160,11 @@ export default function TourList({ tours, venues, onSelectTour, onAddTour, onEdi
             <div className="mobile-stat-label">Venues</div>
           </div>
           <div className="mobile-stat-card">
-            <div className="mobile-stat-value" style={{ color: '#2563EB' }}>{emailedCount}</div>
+            <div className="mobile-stat-value mobile-stat-value--emerald">{emailedCount}</div>
             <div className="mobile-stat-label">Emailed</div>
           </div>
           <div className="mobile-stat-card">
-            <div className="mobile-stat-value" style={{ color: '#D97706' }}>{pendingCount}</div>
+            <div className="mobile-stat-value mobile-stat-value--amber">{pendingCount}</div>
             <div className="mobile-stat-label">Pending</div>
           </div>
         </div>
