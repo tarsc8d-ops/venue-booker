@@ -189,6 +189,13 @@ body {
 .desktop-topbar-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
 .desktop-topbar-right { display: flex; align-items: center; gap: 10px; }
 
+.desktop-date-bar {
+  display: none;
+  flex-shrink: 0;
+  padding: 0 20px 4px;
+  background: var(--bg);
+}
+
 .desktop-stats { display: none; gap: 16px; padding: 16px 28px; flex-shrink: 0; }
 .desktop-stat-card {
   flex: 1; background: var(--surface); border-radius: 14px;
@@ -472,6 +479,7 @@ body {
   .screen { height: 100vh; height: 100dvh; }
 
   .desktop-topbar { display: flex; }
+  .desktop-date-bar { display: block; padding: 0 28px 8px; }
   .desktop-stats { display: flex; }
   .desktop-search-bar { display: flex; }
   .desktop-tour-grid {
@@ -756,6 +764,127 @@ body {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.03em;
+}
+
+/* ====== DATE BAR (Cal AI–style week strip) ====== */
+.date-bar {
+  flex-shrink: 0;
+  padding: 4px 0 10px;
+  background: transparent;
+}
+.mobile-tour-list .date-bar {
+  padding: 6px 0 10px;
+}
+.date-bar-scroll {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 12px 6px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.date-bar-scroll::-webkit-scrollbar {
+  display: none;
+}
+.date-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 44px;
+  max-width: 72px;
+  padding: 6px 8px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 18px;
+  flex-shrink: 0;
+  color: var(--text-2);
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.date-bar-item--selected {
+  background: #ffffff;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+.date-bar-item--selected .date-bar-day {
+  color: var(--text);
+  font-weight: 700;
+}
+.date-bar-item--today:not(.date-bar-item--selected) .date-bar-day {
+  color: var(--accent);
+  font-weight: 600;
+}
+.date-bar-day {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8e8e93;
+  text-transform: capitalize;
+  line-height: 1.1;
+}
+.date-bar-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  border: 2px dashed #c7c7cc;
+  background: transparent;
+  line-height: 1;
+}
+.date-bar-num--solid,
+.date-bar-item--selected .date-bar-num {
+  border-style: solid;
+  border-color: #aeaeb2;
+  background: #fff;
+}
+.date-bar-item--selected .date-bar-num {
+  border-color: #3a3a3c;
+}
+.date-bar-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 1px;
+}
+.date-bar-sep {
+  width: 1px;
+  align-self: stretch;
+  min-height: 44px;
+  margin: 4px 4px 0;
+  background: linear-gradient(180deg, transparent, #d1d1d6 20%, #d1d1d6 80%, transparent);
+  flex-shrink: 0;
+}
+.date-bar-item--next {
+  min-width: 56px;
+  max-width: 88px;
+  padding-bottom: 6px;
+}
+.date-bar-next-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-top: 1px;
+}
+.date-bar-venue {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+  line-height: 1.2;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 
 .mobile-analytics-grid {

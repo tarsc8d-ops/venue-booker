@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { VenBookLogo, MicIcon, SearchIcon, XIcon } from './Icons'
+import DateBar from './DateBar'
 
 const fmtShort = (d) => {
   if (!d) return null
@@ -96,6 +97,10 @@ export default function TourList({ tours, venues, onSelectTour, onAddTour, onEdi
         </button>
       </div>
 
+      <div className="desktop-date-bar">
+        <DateBar venues={venues} />
+      </div>
+
       <div className="desktop-stats">
         <div className="desktop-stat-card">
           <div className="desktop-stat-value">{tours.length}</div>
@@ -149,6 +154,8 @@ export default function TourList({ tours, venues, onSelectTour, onAddTour, onEdi
             <span className="header-title">VenBook</span>
           </div>
         </div>
+
+        <DateBar venues={venues} />
 
         <div className="mobile-analytics-grid">
           <div className="mobile-stat-card">
