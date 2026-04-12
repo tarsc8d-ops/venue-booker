@@ -243,7 +243,22 @@ body {
 .clear-btn { border: none; background: none; font-size: 20px; color: var(--text-3); cursor: pointer; padding: 0; line-height: 1; }
 
 /* ====== SCROLL CONTENT ====== */
-.scroll-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.scroll-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+}
+/* Slightly taller than the viewport so short lists still rubber-band / scroll on iOS */
+.tours-scroll-inner {
+  min-height: calc(100% + 2px);
+  box-sizing: border-box;
+}
+.tours-scroll-footer-spacer {
+  height: 80px;
+  flex-shrink: 0;
+}
 .card-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
 
 /* ====== TOUR CARD ====== */
@@ -457,13 +472,20 @@ body {
   .desktop-stats { display: flex; }
   .desktop-search-bar { display: flex; }
   .desktop-tour-grid {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+    padding: 0 28px 24px;
+  }
+  .desktop-tours-scroll-inner {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 14px;
-    padding: 0 28px 24px;
-    overflow-y: auto;
-    flex: 1;
     align-content: start;
+    min-height: calc(100% + 2px);
+    box-sizing: border-box;
   }
   .mobile-tour-list { display: none; }
 
@@ -496,5 +518,408 @@ body {
 
 @media (min-width: 1200px) {
   :root { --sidebar-width: 240px; }
-  .desktop-tour-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .desktop-tours-scroll-inner { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+}
+
+/* ====================================================
+   MOBILE bottom nav + FAB (Cal AI–style) — JS only mounts when !desktop
+   ==================================================== */
+.mbnav-shell {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 0 12px calc(10px + var(--safe-bottom)) 12px;
+  width: 100%;
+  max-width: min(430px, 100vw);
+  margin: 0 auto;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.mbnav-shell > * {
+  pointer-events: auto;
+}
+
+.mbnav-pill-outer {
+  flex: 1;
+  min-width: 0;
+}
+
+.mbnav-pill {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(245, 245, 247, 0.96);
+  backdrop-filter: blur(12px);
+  border-radius: 22px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.mbnav-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 6px;
+  border: none;
+  background: transparent;
+  border-radius: 16px;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  -webkit-tap-highlight-color: transparent;
+}
+.mbnav-item.active {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.mbnav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+.mbnav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.mbnav-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.mbnav-avatar-fallback {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mbfab-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #1c1c1e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+.mbfab-btn:active {
+  transform: scale(0.94);
+}
+.mbfab-btn.open {
+  background: #2c2c2e;
+}
+.mbfab-x {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.mbfab-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.42);
+  animation: fadeIn 0.2s ease;
+}
+.mbfab-grid {
+  position: fixed;
+  left: 50%;
+  bottom: calc(100px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 95;
+  width: 100%;
+  max-width: 340px;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+.mbfab-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 18px 14px;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+.mbfab-emoji {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.mbfab-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.mbfab-card-sub {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.mobile-tours-header {
+  justify-content: flex-start;
+  border-bottom: none;
+}
+.mobile-tours-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.mobile-tours-brand .header-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.mobile-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 16px 12px;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.mobile-stat-card {
+  background: var(--surface-2);
+  border-radius: 16px;
+  padding: 14px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.mobile-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.mobile-stat-label {
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 600;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tours-scroll-footer-spacer--nav {
+  min-height: calc(100px + var(--safe-bottom));
+}
+
+.tour-card--shared {
+  opacity: 0.96;
+}
+
+.tour-shared-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  background: var(--border);
+  padding: 2px 8px;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
+.mobile-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+.mobile-page-header {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  padding-top: calc(10px + var(--safe-top));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mobile-page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.mobile-page-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+}
+.mobile-page-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.mobile-page-bottom-spacer {
+  min-height: calc(100px + var(--safe-bottom));
+}
+.mobile-page-form .mobile-page-header {
+  padding-left: 8px;
+}
+.mobile-section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+  margin: 8px 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mobile-discover-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.mobile-discover-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.mobile-discover-copy {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.mobile-discover-btn {
+  width: 100%;
+  max-width: 100%;
+}
+
+.teams-intro {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.teams-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.teams-team-card {
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.teams-team-header {
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.teams-team-name {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+}
+.teams-team-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.teams-team-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+}
+.teams-invite-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+.teams-code {
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.teams-members {
+  padding-left: 18px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.teams-share-group {
+  margin-top: 10px;
+}
+.teams-share-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.teams-share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.teams-share-empty {
+  font-size: 13px;
+  color: var(--text-3);
+  margin: 0 0 8px;
+}
+
+@media (min-width: 768px) {
+  .mbnav-shell {
+    display: none !important;
+  }
 }

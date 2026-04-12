@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import TemplateEditor from './TemplateEditor'
+import NativeDeviceSection from './NativeDeviceSection'
 
 // ── Shared page shell ─────────────────────────────────────────────────────────
 function PageShell({ icon, title, action, children }) {
@@ -318,6 +319,7 @@ function AccountPage({ auth, onSignOut }) {
             <div><div className="account-name">{auth?.name}</div><div className="account-email">{auth?.email}</div></div>
           </div>
         </div>
+        <NativeDeviceSection />
         <div className="settings-section">
           <p className="settings-hint" style={{ marginBottom: '14px', lineHeight: '1.6' }}>Your Gmail account is used to send booking emails directly from your address. You'll be asked to re-authenticate after about 1 hour.</p>
           <button className="btn-danger" style={{ width: '100%', textAlign: 'center' }} onClick={() => { if (confirm('Sign out?')) onSignOut() }}>Sign Out</button>

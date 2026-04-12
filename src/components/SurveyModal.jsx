@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { netlifyFunctionUrl } from '../lib/netlifyUrl'
 
 export default function SurveyModal({ venue, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -11,7 +12,7 @@ export default function SurveyModal({ venue, onClose }) {
     setLoading(true); setError('')
     try {
       const qs = filter ? `?venue=${encodeURIComponent(venue.venueName)}` : ''
-      const data = await fetch(`/.netlify/functions/get-survey-results${qs}`).then(r => r.json())
+      const data = await fetch(`${netlifyFunctionUrl('/.netlify/functions/get-survey-results')}${qs}`).then(r => r.json())
       if (data.error) setError(data.error)
       else { setHeaders(data.headers || []); setRows(data.rows || []) }
     } catch { setError('Could not load results. Check your Google Sheets configuration.') }

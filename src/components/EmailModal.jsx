@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { netlifyFunctionUrl } from '../lib/netlifyUrl'
 
 const fmtDate = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) : '[Date TBD]'
 const fmtTime = (t) => { if(!t) return '[Time TBD]'; const [h,m]=t.split(':'); const hr=parseInt(h); return `${hr%12||12}:${m} ${hr>=12?'PM':'AM'}` }
@@ -58,7 +59,7 @@ export default function EmailModal({ venue, tour, templates, surveyLink, accessT
     if (!accessToken) { setError('Google session expired.'); return }
     setSending(true); setError('')
     try {
-      const res  = await fetch('/.netlify/functions/send-email', {
+      const res  = await fetch(netlifyFunctionUrl('/.netlify/functions/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to, subject, body, accessToken }),

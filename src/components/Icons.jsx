@@ -70,6 +70,27 @@ export const PlusIcon = (p) => (
   <svg {...props(p)}><path d="M12 5v14M5 12h14" /></svg>
 )
 
+/** Teams / groups — three people */
+export const UserGroupIcon = (p) => (
+  <svg {...props(p)}>
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+  </svg>
+)
+
+export const HomeIcon = (p) => (
+  <svg {...props(p)}>
+    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z" />
+  </svg>
+)
+
+export const ChartBarIcon = (p) => (
+  <svg {...props(p)}>
+    <path d="M4 19V5M10 19v-6M16 19V9M22 19v-9" />
+  </svg>
+)
+
 export const TrashIcon = (p) => (
   <svg {...props(p)}>
     <polyline points="3 6 5 6 21 6" />

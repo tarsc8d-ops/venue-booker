@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { netlifyFunctionUrl } from '../lib/netlifyUrl'
 
 export default function SurveyResultsModal({ venue, onClose }) {
   const [loading,   setLoading]   = useState(true)
@@ -12,7 +13,7 @@ export default function SurveyResultsModal({ venue, onClose }) {
     setError('')
     try {
       const qs = filter ? `?venue=${encodeURIComponent(venue.venueName)}` : ''
-      const res = await fetch(`/.netlify/functions/get-survey-results${qs}`)
+      const res = await fetch(`${netlifyFunctionUrl('/.netlify/functions/get-survey-results')}${qs}`)
       const data = await res.json()
       if (data.error) {
         setError(data.error)

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './lib/db'
-import { isNative, getGoogleAuthPlugin } from './lib/platform'
+import { isNative, getNativeGoogleAuth } from './lib/platform'
+import { hapticSuccess, useGlobalTapHaptics } from './lib/nativeFeedback'
 import { VenBookLogo } from './components/Icons'
 import LoginScreen from './components/LoginScreen'
 import TourList from './components/TourList'
@@ -11,8 +12,12 @@ import EmailModal from './components/EmailModal'
 import SurveyModal from './components/SurveyModal'
 import SettingsModal from './components/SettingsModal'
 import BulkEmailModal from './components/BulkEmailModal'
-import Drawer from './components/Drawer'
 import DesktopSidebar from './components/DesktopSidebar'
+import MobileBottomNav from './components/MobileBottomNav'
+import MobileFab from './components/MobileFab'
+import MobileVenuesPage from './components/MobileVenuesPage'
+import MobileAccountPage from './components/MobileAccountPage'
+import TeamsScreen from './components/TeamsScreen'
 import DesktopSection from './components/DesktopSection'
 import SavedVenuesSheet from './components/SavedVenuesSheet'
 import SavedArtistsSheet from './components/SavedArtistsSheet'
@@ -57,7 +62,17 @@ export const DEFAULT_TEMPLATES = [
 
 const SECTION_KEYS = ['saved-venues', 'saved-artists', 'templates', 'survey', 'settings']
 
+/** iOS/Android native GoogleAuth.initialize — keep in sync with `capacitor.config.json` → plugins.GoogleAuth */
+const NATIVE_GOOGLE_AUTH_INIT = {
+  clientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID
+    || '496348736505-rasrpncbc5ln5lhimb33t9pnk51ednju.apps.googleusercontent.com',
+  scopes: ['email', 'profile', 'https://www.googleapis.com/auth/gmail.send'],
+  grantOfflineAccess: true,
+}
+
 export default function App() {
+  useGlobalTapHaptics()
+
   const [gisReady, setGisReady] = useState(false)
   const [auth, setAuth]         = useState(() => ls.get('vb_auth', null))
   const [dbReady, setDbReady]   = useState(false)
@@ -78,10 +93,15 @@ export default function App() {
   const [savedArtists,    setSavedArtists]    = useState([])
   const [surveyLinks,     setSurveyLinks]     = useState([])
 
+  const [teamsList,      setTeamsList]      = useState([])
+  const [teamMembers,    setTeamMembers]    = useState([])
+  const [teamShares,     setTeamShares]     = useState([])
+
   const [currentTourId,  setCurrentTourId]  = useState(null)
   const [desktopSection, setDesktopSection] = useState(null)
   const [modal,          setModal]          = useState(null)
-  const [drawerOpen,     setDrawerOpen]     = useState(false)
+  const [mobileTab,      setMobileTab]      = useState('tours')
+  const [fabOpen,        setFabOpen]        = useState(false)
 
   const [showSavedVenues,  setShowSavedVenues]  = useState(false)
   const [showSavedArtists, setShowSavedArtists] = useState(false)
@@ -116,25 +136,54 @@ export default function App() {
   }, [])
 
   const applyRemote = useCallback((remote) => {
-    setTours(remote.tours          ?? [])
-    setVenues(remote.venues         ?? [])
-    setSavedVenues(remote.savedVenues    ?? [])
-    setSavedArtists(remote.savedArtists  ?? [])
-    setCustomTemplates(remote.templates  ?? [])
-    setSurveyLinks(remote.surveyLinks    ?? [])
+    const ownTours = remote.tours ?? []
+    const sharedTours = remote.sharedTours ?? []
+    const ownIds = new Set(ownTours.map((t) => t.id))
+    setTours([
+      ...ownTours,
+      ...sharedTours.filter((t) => t?.id && !ownIds.has(t.id)),
+    ])
+    setVenues(remote.venues ?? [])
+    setSavedVenues(remote.savedVenues ?? [])
+    const ownArtists = remote.savedArtists ?? []
+    const sharedArtists = remote.sharedArtists ?? []
+    const artistIds = new Set(ownArtists.map((a) => a.id))
+    setSavedArtists([
+      ...ownArtists,
+      ...sharedArtists.filter((a) => a?.id && !artistIds.has(a.id)),
+    ])
+    const ownTpls = remote.templates ?? []
+    const sharedTpls = remote.sharedTemplates ?? []
+    const tplIds = new Set(ownTpls.map((t) => t.id))
+    setCustomTemplates([
+      ...ownTpls,
+      ...sharedTpls.filter((t) => t?.id && !tplIds.has(t.id)),
+    ])
+    setSurveyLinks(remote.surveyLinks ?? [])
+    setTeamsList(remote.teams ?? [])
+    setTeamMembers(remote.teamMembers ?? [])
+    setTeamShares(remote.teamShares ?? [])
     if (remote.settings?.surveyLink != null) setSurveyLink(remote.settings.surveyLink)
     if (remote.settings?.sheetId    != null) setSheetId(remote.settings.sheetId)
   }, [])
 
   const signOut = useCallback(async () => {
-    // Also sign out of native Google auth if on iOS
+    // Native plugin: signOut() crashes if initialize() never ran (googleSignIn is nil).
+    // That happens on 401 from db.loadAll — stale token triggers signOut without a prior sign-in this session.
     if (isNative()) {
-      const GoogleAuth = await getGoogleAuthPlugin()
-      if (GoogleAuth) { try { await GoogleAuth.signOut() } catch {} }
+      const GoogleAuth = getNativeGoogleAuth()
+      if (GoogleAuth) {
+        try {
+          await GoogleAuth.initialize(NATIVE_GOOGLE_AUTH_INIT)
+          await GoogleAuth.signOut()
+        } catch {
+          /* ignore — still clear local session below */
+        }
+      }
     }
     localStorage.removeItem('vb_auth')
     setAuth(null); setCurrentTourId(null); setModal(null)
-    setDrawerOpen(false); setDbReady(false)
+    setDbReady(false)
     setDesktopSection(null); setTours([]); setVenues([])
   }, [])
 
@@ -176,33 +225,92 @@ export default function App() {
     } finally { setDbReady(true) }
   }, [applyRemote, signOut])
 
+  const refreshFromDb = useCallback(async () => {
+    const token = auth?.accessToken
+    if (!token) return
+    try {
+      const remote = await db.loadAll(token)
+      applyRemote(remote)
+    } catch (e) {
+      console.warn('refreshFromDb:', e?.message || e)
+    }
+  }, [auth?.accessToken, applyRemote])
+
   useEffect(() => {
     if (auth?.accessToken) syncFromDB(auth.accessToken)
     else setDbReady(true)
   }, [auth?.accessToken])
 
+  const joinTeamHandled = useRef(false)
+  useEffect(() => {
+    if (!dbReady || !auth?.accessToken || joinTeamHandled.current) return
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('joinTeam')
+    if (!code) return
+    joinTeamHandled.current = true
+    db.teamJoin(code, auth.accessToken)
+      .then(() => db.loadAll(auth.accessToken))
+      .then((remote) => {
+        applyRemote(remote)
+        params.delete('joinTeam')
+        const qs = params.toString()
+        window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`)
+        setMobileTab('teams')
+      })
+      .catch((e) => {
+        joinTeamHandled.current = false
+        alert(e?.message || 'Could not join team')
+      })
+  }, [dbReady, auth?.accessToken, applyRemote])
+
   // ─── Native iOS sign-in via @capacitor/google-auth ───────────────────────
   const signInNative = useCallback(async () => {
-    const GoogleAuth = await getGoogleAuthPlugin()
-    if (!GoogleAuth) { console.error('GoogleAuth plugin not loaded'); return }
+    console.log('[VenBook] signInNative: tap')
+    const GoogleAuth = getNativeGoogleAuth()
+    if (!GoogleAuth) {
+      console.error('[VenBook] GoogleAuth unavailable (not native?)')
+      alert('Google Sign-In is not available. Rebuild the iOS app after running: npx cap sync ios')
+      return
+    }
     try {
-      await GoogleAuth.initialize()
+      console.log('[VenBook] GoogleAuth.initialize …')
+      await GoogleAuth.initialize(NATIVE_GOOGLE_AUTH_INIT)
+      console.log('[VenBook] GoogleAuth.signIn …')
       const result = await GoogleAuth.signIn()
-      // result.authentication.accessToken is the Gmail-capable access token
-      const accessToken = result.authentication.accessToken
+      console.log('[VenBook] GoogleAuth.signIn result keys:', result ? Object.keys(result) : null)
+      let accessToken = result?.authentication?.accessToken
+      if (!accessToken) {
+        try {
+          const refreshed = await GoogleAuth.refresh()
+          accessToken = refreshed?.accessToken
+        } catch (refreshErr) {
+          console.warn('GoogleAuth.refresh after signIn:', refreshErr)
+        }
+      }
+      if (!accessToken) {
+        console.error('Native sign-in: no access token', result)
+        alert('Sign-in succeeded but no access token was returned. On Google Cloud, confirm the iOS OAuth client uses bundle ID com.venbook.app and Gmail scope is allowed for your app.')
+        return
+      }
       const authData = {
         accessToken,
         email: result.email,
         name: result.name || result.email,
         picture: result.imageUrl,
-        // Native tokens refresh automatically — set a long expiry
         expiresAt: Date.now() + 3600 * 1000,
       }
       setAuth(authData); setDbReady(false)
       ls.set('vb_auth', authData)
+      hapticSuccess()
     } catch (e) {
-      if (e.error !== 'popup_closed_by_user') {
-        console.error('Native sign-in failed:', e)
+      const code = e?.code ?? e?.error
+      const msg = e?.message ?? (typeof e === 'string' ? e : JSON.stringify(e))
+      console.error('[VenBook] Native sign-in error:', e)
+      const userCancelled =
+        code === 'popup_closed_by_user'
+        || /cancel|canceled|dismissed|user denied/i.test(msg)
+      if (!userCancelled) {
+        alert(`Google sign-in failed: ${msg}`)
       }
     }
   }, [])
@@ -221,6 +329,7 @@ export default function App() {
           const authData = { accessToken: resp.access_token, email: user.email, name: user.name || user.email, picture: user.picture, expiresAt: Date.now() + resp.expires_in * 1000 }
           setAuth(authData); setDbReady(false)
           ls.set('vb_auth', authData)
+          hapticSuccess()
         } catch (e) { console.error('Failed to get user info:', e) }
       },
     })
@@ -243,20 +352,65 @@ export default function App() {
   }, [signOut])
 
   const addTour = (d) => { const t = { ...d, id: `t_${Date.now()}`, createdAt: new Date().toISOString() }; setTours(prev => [...prev, t]); persist(() => db.upsert('tours', t, getToken())) }
-  const updateTour = (id, d) => { setTours(prev => { const updated = prev.map(x => x.id === id ? { ...x, ...d } : x); persist(() => db.upsert('tours', updated.find(x => x.id === id), getToken())); return updated }) }
-  const deleteTour = (id) => { setTours(t => t.filter(x => x.id !== id)); setVenues(v => v.filter(x => x.tourId !== id)); if (currentTourId === id) setCurrentTourId(null); persist(() => db.delete('tours', id, getToken())) }
+  const updateTour = (id, d) => {
+    const cur = tours.find((x) => x.id === id)
+    if (cur?._shared) return
+    setTours((prev) => {
+      const updated = prev.map((x) => (x.id === id ? { ...x, ...d } : x))
+      persist(() => db.upsert('tours', updated.find((x) => x.id === id), getToken()))
+      return updated
+    })
+  }
+  const deleteTour = (id) => {
+    const cur = tours.find((x) => x.id === id)
+    if (cur?._shared) return
+    setTours((t) => t.filter((x) => x.id !== id)); setVenues((v) => v.filter((x) => x.tourId !== id)); if (currentTourId === id) setCurrentTourId(null); persist(() => db.delete('tours', id, getToken()))
+  }
   const addVenue = (d) => { const { _saveToLib, ...venueData } = d; const v = { ...venueData, id: `v_${Date.now()}`, status: 'pending', createdAt: new Date().toISOString() }; setVenues(prev => [...prev, v]); persist(() => db.upsert('venues', v, getToken())); if (_saveToLib) { const entry = { id: `sv_${Date.now()}`, venueName: d.venueName, city: d.city, contactName: d.contactName, contactEmail: d.contactEmail, capacity: d.capacity, notes: d.notes }; setSavedVenues(prev => [...prev, entry]); persist(() => db.upsert('saved_venues', entry, getToken())) } }
   const updateVenue = (id, d) => { setVenues(prev => { const updated = prev.map(x => x.id === id ? { ...x, ...d } : x); persist(() => db.upsert('venues', updated.find(x => x.id === id), getToken())); return updated }) }
   const deleteVenue   = (id) => { setVenues(v => v.filter(x => x.id !== id)); persist(() => db.delete('venues', id, getToken())) }
-  const markEmailSent = (id) => updateVenue(id, { status: 'email_sent', emailSentAt: new Date().toISOString() })
-  const saveTemplate   = (t) => { setCustomTemplates(prev => { const e = prev.find(x => x.id === t.id); persist(() => db.upsert('email_templates', t, getToken())); return e ? prev.map(x => x.id === t.id ? t : x) : [...prev, t] }) }
-  const deleteTemplate = (id) => { setCustomTemplates(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('email_templates', id, getToken())) }
+  const markEmailSent = (id, opts = {}) => {
+    updateVenue(id, { status: 'email_sent', emailSentAt: new Date().toISOString() })
+    if (opts.haptic !== false) hapticSuccess()
+  }
+  const saveTemplate   = (t) => {
+    setCustomTemplates((prev) => {
+      const e = prev.find((x) => x.id === t.id)
+      if (e?._shared) return prev
+      persist(() => db.upsert('email_templates', t, getToken()))
+      return e ? prev.map((x) => (x.id === t.id ? t : x)) : [...prev, t]
+    })
+  }
+  const deleteTemplate = (id) => {
+    const e = customTemplates.find((x) => x.id === id)
+    if (e?._shared) return
+    setCustomTemplates((prev) => prev.filter((x) => x.id !== id)); persist(() => db.delete('email_templates', id, getToken()))
+  }
   const saveSavedVenue   = (v) => { setSavedVenues(prev => { const e = prev.find(x => x.id === v.id); const entry = e ? v : { ...v, id: `sv_${Date.now()}` }; persist(() => db.upsert('saved_venues', entry, getToken())); return e ? prev.map(x => x.id === v.id ? entry : x) : [...prev, entry] }) }
   const deleteSavedVenue = (id) => { setSavedVenues(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_venues', id, getToken())) }
-  const saveSavedArtist   = (a) => { setSavedArtists(prev => { const e = prev.find(x => x.id === a.id); const entry = e ? a : { ...a, id: `sa_${Date.now()}` }; persist(() => db.upsert('saved_artists', entry, getToken())); return e ? prev.map(x => x.id === a.id ? entry : x) : [...prev, entry] }) }
-  const deleteSavedArtist = (id) => { setSavedArtists(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_artists', id, getToken())) }
+  const saveSavedArtist   = (a) => {
+    setSavedArtists((prev) => {
+      const ex = prev.find((x) => x.id === a.id)
+      if (ex?._shared) return prev
+      const entry = ex ? a : { ...a, id: `sa_${Date.now()}` }
+      persist(() => db.upsert('saved_artists', entry, getToken()))
+      return ex ? prev.map((x) => (x.id === a.id ? entry : x)) : [...prev, entry]
+    })
+  }
+  const deleteSavedArtist = (id) => {
+    const e = savedArtists.find((x) => x.id === id)
+    if (e?._shared) return
+    setSavedArtists((prev) => prev.filter((x) => x.id !== id)); persist(() => db.delete('saved_artists', id, getToken()))
+  }
   const saveSurveyLink   = (l) => { setSurveyLinks(prev => { const e = prev.find(x => x.id === l.id); const entry = e ? l : { ...l, id: `sl_${Date.now()}`, createdAt: new Date().toISOString() }; persist(() => db.upsert('survey_links', entry, getToken())); return e ? prev.map(x => x.id === l.id ? entry : x) : [...prev, entry] }) }
   const deleteSurveyLink = (id) => { setSurveyLinks(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('survey_links', id, getToken())) }
+
+  const handleFabAction = (key) => {
+    if (key === 'tour') setModal({ type: 'tour', data: null })
+    if (key === 'artist') setShowSavedArtists(true)
+    if (key === 'template') setShowTemplates(true)
+    if (key === 'survey') setShowSurveyLinks(true)
+  }
 
   const handleNav = (key) => {
     if (key === 'tours') { setCurrentTourId(null); setDesktopSection(null); return }
@@ -273,6 +427,7 @@ export default function App() {
   const currentTour   = tours.find(t => t.id === currentTourId)
   const currentVenues = venues.filter(v => v.tourId === currentTourId)
   const sidebarPage   = desktopSection || (currentTourId ? 'venues' : 'tours')
+  const showMobileChrome = !isDesktop && !currentTourId
 
   if (!auth) return <LoginScreen onSignIn={signIn} loading={!gisReady} />
 
@@ -288,7 +443,6 @@ export default function App() {
 
   return (
     <div className="app">
-      <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} auth={auth} onNav={handleNav} onSignOut={signOut} />
       <DesktopSidebar auth={auth} currentPage={sidebarPage} onNav={handleNav} onSignOut={signOut} />
 
       <div className="desktop-main">
@@ -314,18 +468,57 @@ export default function App() {
             onBulkEmail={(vs) => setModal({ type: 'bulk', data: vs })}
             onTestEmail={() => setModal({ type: 'test-email' })}
           />
+        ) : !isDesktop ? (
+          <>
+            {mobileTab === 'tours' && (
+              <TourList
+                tours={tours} venues={venues}
+                onSelectTour={handleSelectTour}
+                onAddTour={() => setModal({ type: 'tour', data: null })}
+                onEditTour={(t) => setModal({ type: 'tour', data: t })}
+                onDeleteTour={deleteTour}
+              />
+            )}
+            {mobileTab === 'venues' && (
+              <MobileVenuesPage
+                savedVenues={savedVenues}
+                onSave={saveSavedVenue}
+                onDelete={deleteSavedVenue}
+              />
+            )}
+            {mobileTab === 'teams' && (
+              <TeamsScreen
+                teamsList={teamsList}
+                teamMembers={teamMembers}
+                teamShares={teamShares}
+                tours={tours}
+                customTemplates={customTemplates}
+                savedArtists={savedArtists}
+                getToken={getToken}
+                onRefresh={refreshFromDb}
+              />
+            )}
+            {mobileTab === 'account' && (
+              <MobileAccountPage auth={auth} onSignOut={signOut} />
+            )}
+          </>
         ) : (
           <TourList
-            tours={tours} venues={venues} auth={auth}
+            tours={tours} venues={venues}
             onSelectTour={handleSelectTour}
             onAddTour={() => setModal({ type: 'tour', data: null })}
             onEditTour={(t) => setModal({ type: 'tour', data: t })}
             onDeleteTour={deleteTour}
-            onOpenDrawer={() => setDrawerOpen(true)}
-            onOpenSettings={() => isDesktop ? setDesktopSection('settings') : setModal({ type: 'settings' })}
           />
         )}
       </div>
+
+      {showMobileChrome && (
+        <div className="mbnav-shell">
+          <MobileBottomNav tab={mobileTab} onTab={setMobileTab} auth={auth} />
+          <MobileFab open={fabOpen} onToggle={setFabOpen} onAction={handleFabAction} />
+        </div>
+      )}
 
       {modal?.type === 'tour' && (
         <TourModal tour={modal.data} templates={allTemplates} savedArtists={savedArtists} surveyLinks={surveyLinks}
@@ -353,7 +546,7 @@ export default function App() {
       {modal?.type === 'bulk' && (
         <BulkEmailModal venues={modal.data} tour={currentTour} templates={allTemplates}
           surveyLink={getSurveyUrl(currentTour)} accessToken={getToken()}
-          onReAuth={signIn} onSent={(ids) => { ids.forEach(id => markEmailSent(id)); close() }} onClose={close} />
+          onReAuth={signIn} onSent={(ids) => { ids.forEach(id => markEmailSent(id, { haptic: false })); hapticSuccess(); close() }} onClose={close} />
       )}
       {modal?.type === 'survey' && <SurveyModal venue={modal.data} onClose={close} />}
       {modal?.type === 'settings' && <SettingsModal auth={auth} onSignOut={signOut} onClose={close} />}

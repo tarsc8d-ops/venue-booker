@@ -1,3 +1,5 @@
+import NativeDeviceSection from './NativeDeviceSection'
+
 export default function SettingsModal({ auth, onSignOut, onClose }) {
   return (
     <div className="sheet-overlay" onClick={onClose}>
@@ -21,6 +23,7 @@ export default function SettingsModal({ auth, onSignOut, onClose }) {
               </div>
             </div>
           </div>
+          <NativeDeviceSection />
           <div className="settings-section">
             <p className="settings-hint" style={{ marginBottom: '14px' }}>
               Your Gmail account is used to send booking emails directly from your address.

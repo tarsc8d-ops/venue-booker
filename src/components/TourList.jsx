@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { MenuIcon, MicIcon, SearchIcon, XIcon } from './Icons'
+import { VenBookLogo, MicIcon, SearchIcon, XIcon } from './Icons'
 
 const fmtShort = (d) => {
   if (!d) return null
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function TourList({ tours, venues, auth, onSelectTour, onAddTour, onEditTour, onDeleteTour, onOpenDrawer, onOpenSettings }) {
+export default function TourList({ tours, venues, onSelectTour, onAddTour, onEditTour, onDeleteTour }) {
   const [search, setSearch] = useState('')
 
   const filtered = tours.filter(t =>
@@ -34,24 +34,33 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
     const next      = nextShow(tour.id)
     const color     = tour.color || '#7C3AED'
     return (
-      <div className="tour-card" onClick={() => onSelectTour(tour.id)}>
+      <div
+        className={`tour-card ${tour._shared ? 'tour-card--shared' : ''}`}
+        onClick={() => { if (!tour._shared) onSelectTour(tour.id) }}
+        style={tour._shared ? { cursor: 'default' } : undefined}
+      >
         <div className="tour-card-bar" style={{ background: color }} />
         <div className="tour-card-body">
           <div className="tour-card-top">
             <div className="tour-card-info">
-              <div className="tour-name">{tour.name}</div>
+              <div className="tour-name">
+                {tour.name}
+                {tour._shared && <span className="tour-shared-badge">Shared</span>}
+              </div>
               {tour.artist && <div className="tour-artist">{tour.artist}</div>}
             </div>
-            <button
-              className="icon-btn-sm"
-              onClick={e => { e.stopPropagation(); onEditTour(tour) }}
-              aria-label="Edit tour"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
-              </svg>
-            </button>
+            {!tour._shared && (
+              <button
+                className="icon-btn-sm"
+                onClick={e => { e.stopPropagation(); onEditTour(tour) }}
+                aria-label="Edit tour"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+                </svg>
+              </button>
+            )}
           </div>
           <div className="tour-card-stats">
             <div className="tour-stat">
@@ -116,34 +125,48 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
       </div>
 
       <div className="desktop-tour-grid">
-        {filtered.length === 0 ? (
-          <div className="desktop-empty-center">
-            <div className="empty">
-              <div className="empty-icon"><MicIcon width={48} height={48} style={{ opacity: 0.2 }} /></div>
-              <h3>{tours.length === 0 ? 'No tours yet' : 'No results'}</h3>
-              <p>{tours.length === 0 ? 'Create your first tour to get started.' : 'Try a different search.'}</p>
-              {tours.length === 0 && <button className="btn-primary" onClick={onAddTour}>New Tour</button>}
+        <div className="desktop-tours-scroll-inner">
+          {filtered.length === 0 ? (
+            <div className="desktop-empty-center">
+              <div className="empty">
+                <div className="empty-icon"><MicIcon width={48} height={48} style={{ opacity: 0.2 }} /></div>
+                <h3>{tours.length === 0 ? 'No tours yet' : 'No results'}</h3>
+                <p>{tours.length === 0 ? 'Create your first tour to get started.' : 'Try a different search.'}</p>
+                {tours.length === 0 && <button className="btn-primary" onClick={onAddTour}>New Tour</button>}
+              </div>
             </div>
-          </div>
-        ) : (
-          filtered.map(tour => <TourCard key={tour.id} tour={tour} />)
-        )}
+          ) : (
+            filtered.map(tour => <TourCard key={tour.id} tour={tour} />)
+          )}
+        </div>
       </div>
 
-      {/* MOBILE */}
+      {/* MOBILE — Cal-style: logo header, analytics, list; bottom nav + FAB live in App */}
       <div className="mobile-tour-list screen">
-        <div className="header">
-          <button className="hamburger-btn" onClick={onOpenDrawer} aria-label="Open menu">
-            <MenuIcon width={20} height={20} />
-          </button>
-          <div className="header-center">
+        <div className="header mobile-tours-header">
+          <div className="header-left mobile-tours-brand">
+            <VenBookLogo size={36} />
             <span className="header-title">VenBook</span>
           </div>
-          <button className="icon-btn" onClick={onOpenSettings} aria-label="Account" style={{ width: '40px' }}>
-            {auth?.picture
-              ? <img src={auth.picture} className="avatar" alt={auth.name} onError={e => { e.target.style.display = 'none' }} />
-              : <SettingsIcon width={20} height={20} />}
-          </button>
+        </div>
+
+        <div className="mobile-analytics-grid">
+          <div className="mobile-stat-card">
+            <div className="mobile-stat-value">{tours.filter((t) => !t._shared).length}</div>
+            <div className="mobile-stat-label">Tours</div>
+          </div>
+          <div className="mobile-stat-card">
+            <div className="mobile-stat-value">{totalVenues}</div>
+            <div className="mobile-stat-label">Venues</div>
+          </div>
+          <div className="mobile-stat-card">
+            <div className="mobile-stat-value" style={{ color: '#2563EB' }}>{emailedCount}</div>
+            <div className="mobile-stat-label">Emailed</div>
+          </div>
+          <div className="mobile-stat-card">
+            <div className="mobile-stat-value" style={{ color: '#D97706' }}>{pendingCount}</div>
+            <div className="mobile-stat-label">Pending</div>
+          </div>
         </div>
 
         <div className="search-wrap">
@@ -151,37 +174,28 @@ export default function TourList({ tours, venues, auth, onSelectTour, onAddTour,
             <span className="search-icon-inner"><SearchIcon width={15} height={15} /></span>
             <input className="search-input" type="search" placeholder="Search tours..."
               value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button className="clear-btn" onClick={() => setSearch('')}><XIcon width={16} height={16} /></button>}
+            {search && <button type="button" className="clear-btn" onClick={() => setSearch('')}><XIcon width={16} height={16} /></button>}
           </div>
         </div>
 
         <div className="scroll-content">
-          {filtered.length === 0 ? (
-            <div className="empty">
-              <div className="empty-icon"><MicIcon width={48} height={48} style={{ opacity: 0.2 }} /></div>
-              <h3>{tours.length === 0 ? 'No tours yet' : 'No results'}</h3>
-              <p>{tours.length === 0 ? 'Create your first tour to get started.' : 'Try a different search.'}</p>
-              {tours.length === 0 && <button className="btn-primary" onClick={onAddTour}>New Tour</button>}
-            </div>
-          ) : (
-            <div className="card-list">
-              {filtered.map(tour => <TourCard key={tour.id} tour={tour} />)}
-            </div>
-          )}
-          <div style={{ height: '80px' }} />
+          <div className="tours-scroll-inner">
+            {filtered.length === 0 ? (
+              <div className="empty">
+                <div className="empty-icon"><MicIcon width={48} height={48} style={{ opacity: 0.2 }} /></div>
+                <h3>{tours.length === 0 ? 'No tours yet' : 'No results'}</h3>
+                <p>{tours.length === 0 ? 'Create your first tour to get started.' : 'Try a different search.'}</p>
+                {tours.length === 0 && <button type="button" className="btn-primary" onClick={onAddTour}>New Tour</button>}
+              </div>
+            ) : (
+              <div className="card-list">
+                {filtered.map(tour => <TourCard key={tour.id} tour={tour} />)}
+              </div>
+            )}
+            <div className="tours-scroll-footer-spacer tours-scroll-footer-spacer--nav" aria-hidden />
+          </div>
         </div>
-
-        <button className="fab" onClick={onAddTour} aria-label="Add tour">+</button>
       </div>
     </>
-  )
-}
-
-function SettingsIcon({ width, height }) {
-  return (
-    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-    </svg>
   )
 }

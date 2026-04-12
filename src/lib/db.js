@@ -1,5 +1,6 @@
 // Supabase Edge Function — secure backend that verifies Google token + talks to DB
-const DB_URL = 'https://ganzedlyvnwayhtipylh.supabase.co/functions/v1/venue-data'
+const DB_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
+  || 'https://ganzedlyvnwayhtipylh.supabase.co/functions/v1/venue-data'
 
 async function call(action, payload, accessToken) {
   if (!accessToken) throw Object.assign(new Error('Session expired'), { status: 401 })
@@ -36,4 +37,16 @@ export const db = {
   /** Save user settings (survey link, sheet id) */
   saveSettings: (data, token) =>
     call('save_settings', { data }, token),
+
+  teamCreate: (name, token) =>
+    call('team_create', { name }, token),
+
+  teamJoin: (inviteCode, token) =>
+    call('team_join', { invite_code: inviteCode }, token),
+
+  teamShare: (teamId, resourceType, resourceId, token) =>
+    call('team_share', { team_id: teamId, resource_type: resourceType, resource_id: resourceId }, token),
+
+  teamUnshare: (teamId, resourceType, resourceId, token) =>
+    call('team_unshare', { team_id: teamId, resource_type: resourceType, resource_id: resourceId }, token),
 }

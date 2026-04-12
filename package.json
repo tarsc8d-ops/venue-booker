@@ -8,13 +8,17 @@
     "preview": "vite preview",
     "ios": "npm run build && npx cap sync ios && npx cap open ios",
     "ios:build": "npm run build && npx cap sync ios",
-    "ios:open": "npx cap open ios"
+    "ios:open": "npx cap open ios",
+    "ios:verify": "bash scripts/ios-verify-build.sh",
+    "ios:logs": "bash scripts/ios-logs.sh"
   },
   "dependencies": {
     "@capacitor/app": "^6.0.0",
     "@capacitor/browser": "^6.0.0",
     "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.3",
     "@capacitor/ios": "^6.0.0",
+    "@capacitor/local-notifications": "^6.1.3",
     "@capacitor/status-bar": "^6.0.0",
     "@codetrix-studio/capacitor-google-auth": "3.4.0-rc.4",
     "react": "^18.3.1",

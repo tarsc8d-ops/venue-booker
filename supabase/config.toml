@@ -1,0 +1,5 @@
+# Supabase local / deploy config — see https://supabase.com/docs/guides/cli/config
+
+[functions.venue-data]
+# Google OAuth access token is verified inside the function (not Supabase JWT).
+verify_jwt = false

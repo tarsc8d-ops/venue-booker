@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { isNative } from '../lib/platform'
 
 const COLORS = ['#7C3AED','#2563EB','#059669','#D97706','#DC2626','#DB2777','#0891B2','#64748B']
+
+/** After bottom-sheet slideUp (0.28s in CSS), focus keyboard — avoids WKWebView toolbar constraint churn + delay when autoFocus races the animation. */
+const NATIVE_NAME_FOCUS_MS = 320
 
 export default function TourModal({ tour, templates, savedArtists, surveyLinks, onSave, onDelete, onClose }) {
   const [form, setForm] = useState({
     name: '', artist: '', description: '', color: COLORS[0], emailTemplateId: '', surveyLinkId: '',
   })
+  const nameInputRef = useRef(null)
 
   useEffect(() => {
     if (tour) setForm({
@@ -16,6 +21,14 @@ export default function TourModal({ tour, templates, savedArtists, surveyLinks, 
       emailTemplateId: tour.emailTemplateId || '',
       surveyLinkId:    tour.surveyLinkId    || '',
     })
+  }, [tour])
+
+  useEffect(() => {
+    if (!isNative()) return
+    const id = window.setTimeout(() => {
+      nameInputRef.current?.focus({ preventScroll: true })
+    }, NATIVE_NAME_FOCUS_MS)
+    return () => clearTimeout(id)
   }, [tour])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -31,8 +44,8 @@ export default function TourModal({ tour, templates, savedArtists, surveyLinks, 
         <div className="sheet-body">
           <div className="field">
             <label>Tour Name *</label>
-            <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
-              placeholder="e.g. Summer 2026 Tour" autoFocus />
+            <input ref={nameInputRef} type="text" value={form.name} onChange={e => set('name', e.target.value)}
+              placeholder="e.g. Summer 2026 Tour" autoFocus={!isNative()} />
           </div>
 
           <div className="field">

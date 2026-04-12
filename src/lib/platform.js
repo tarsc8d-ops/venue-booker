@@ -2,23 +2,23 @@
  * Platform detection and auth helpers for VenBook.
  * On iOS (Capacitor), we use @codetrix-studio/capacitor-google-auth for native sign-in.
  * On web, we use Google Identity Services (GIS) popup.
+ *
+ * GoogleAuth is imported statically — dynamic import() can fail to load chunks from
+ * capacitor://localhost in the WebView, which makes native sign-in look "dead" with no logs.
  */
+import { Capacitor } from '@capacitor/core'
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth'
 
 export const isNative = () => {
   try {
-    return !!(window.Capacitor && window.Capacitor.isNativePlatform())
+    return Capacitor.isNativePlatform()
   } catch {
     return false
   }
 }
 
-export const getGoogleAuthPlugin = async () => {
+/** Native-only: the Capacitor GoogleAuth bridge (same npm package; iOS SDK comes from CocoaPods). */
+export const getNativeGoogleAuth = () => {
   if (!isNative()) return null
-  try {
-    const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth')
-    return GoogleAuth
-  } catch (e) {
-    console.warn('GoogleAuth plugin not available:', e)
-    return null
-  }
+  return GoogleAuth
 }
