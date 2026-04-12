@@ -171,7 +171,7 @@ export default function BulkEmailModal({ venues, tour, templates, surveyLink, ac
                         <div style={{ fontWeight:500, fontSize:'14px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{v.venueName}</div>
                         <div style={{ fontSize:'12px', color:'var(--text-3)' }}>{v.contactEmail || 'No email'}</div>
                       </div>
-                      <div style={{ fontSize:'12px', fontWeight:500, flexShrink:0, color: s === 'sent' ? '#059669' : s === 'error' ? '#DC2626' : s === 'sending' ? 'var(--accent)' : 'var(--text-3)' }}>
+                      <div style={{ fontSize:'12px', fontWeight:500, flexShrink:0, color: s === 'sent' ? '#7C3AED' : s === 'error' ? '#DC2626' : s === 'sending' ? 'var(--accent)' : 'var(--text-3)' }}>
                         {STATUS_LABEL[s]}
                       </div>
                     </div>

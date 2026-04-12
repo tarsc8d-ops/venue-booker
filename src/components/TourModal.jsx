@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { isNative } from '../lib/platform'
 
-const COLORS = ['#7C3AED','#2563EB','#059669','#D97706','#DC2626','#DB2777','#0891B2','#64748B']
+const COLORS = ['#7C3AED','#2563EB','#9333EA','#D97706','#DC2626','#DB2777','#0891B2','#64748B']
 
 /** After bottom-sheet slideUp (0.28s in CSS), focus keyboard — avoids WKWebView toolbar constraint churn + delay when autoFocus races the animation. */
 const NATIVE_NAME_FOCUS_MS = 320
