@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { VenBookLogo, MicIcon, SearchIcon, XIcon } from './Icons'
+import { VenBookLockupWhite, MicIcon, SearchIcon, XIcon } from './Icons'
 import DateBar from './DateBar'
 
 const fmtShort = (d) => {
@@ -146,13 +146,11 @@ export default function TourList({ tours, venues, onSelectTour, onAddTour, onEdi
         </div>
       </div>
 
-      {/* MOBILE — Cal-style: logo header, analytics, list; bottom nav + FAB live in App */}
+      {/* MOBILE */}
       <div className="mobile-tour-list screen">
-        <div className="header mobile-tours-header">
-          <div className="header-left mobile-tours-brand">
-            <VenBookLogo size={36} />
-            <span className="header-title">VenBook</span>
-          </div>
+        {/* Full lockup logo header */}
+        <div className="mobile-tours-header">
+          <VenBookLockupWhite />
         </div>
 
         <DateBar venues={venues} />
