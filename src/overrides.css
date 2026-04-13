@@ -55,3 +55,23 @@
 
 /* Login screen icon fix */
 .login-icon { display: flex; justify-content: center; margin-bottom: 16px; }
+
+/* ── Mobile header: Cal AI–style icon + name ──────────────────────────────── */
+/* Must override the bare .mobile-tours-header which has no display/padding */
+.mobile-tours-header {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  flex-shrink: 0;
+}
+
+/* Brand name text next to the logo icon */
+.mobile-tours-brand-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  line-height: 1;
+}
