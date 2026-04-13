@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './lib/db'
 import { isNative, getNativeGoogleAuth } from './lib/platform'
 import { hapticSuccess, useGlobalTapHaptics } from './lib/nativeFeedback'
-import { VenBookLogo } from './components/Icons'
+import { VenBookOutline } from './components/Icons'
 import LoginScreen from './components/LoginScreen'
 import TourList from './components/TourList'
 import VenueList from './components/VenueList'
@@ -62,7 +62,6 @@ export const DEFAULT_TEMPLATES = [
 
 const SECTION_KEYS = ['saved-venues', 'saved-artists', 'templates', 'survey', 'settings']
 
-/** iOS/Android native GoogleAuth.initialize — keep in sync with `capacitor.config.json` → plugins.GoogleAuth */
 const NATIVE_GOOGLE_AUTH_INIT = {
   clientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID
     || '496348736505-rasrpncbc5ln5lhimb33t9pnk51ednju.apps.googleusercontent.com',
@@ -118,7 +117,6 @@ export default function App() {
     return surveyLink
   }, [surveyLinks, surveyLink])
 
-  // Load GIS script only on web (not needed in native)
   useEffect(() => {
     if (isNative()) { setGisReady(true); return }
     const s = document.createElement('script')
@@ -127,7 +125,6 @@ export default function App() {
     document.head.appendChild(s)
   }, [])
 
-  // StatusBar: set light style on iOS
   useEffect(() => {
     if (!isNative()) return
     import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
@@ -168,17 +165,13 @@ export default function App() {
   }, [])
 
   const signOut = useCallback(async () => {
-    // Native plugin: signOut() crashes if initialize() never ran (googleSignIn is nil).
-    // That happens on 401 from db.loadAll — stale token triggers signOut without a prior sign-in this session.
     if (isNative()) {
       const GoogleAuth = getNativeGoogleAuth()
       if (GoogleAuth) {
         try {
           await GoogleAuth.initialize(NATIVE_GOOGLE_AUTH_INIT)
           await GoogleAuth.signOut()
-        } catch {
-          /* ignore — still clear local session below */
-        }
+        } catch { /* ignore */ }
       }
     }
     localStorage.removeItem('vb_auth')
@@ -263,33 +256,21 @@ export default function App() {
       })
   }, [dbReady, auth?.accessToken, applyRemote])
 
-  // ─── Native iOS sign-in via @capacitor/google-auth ───────────────────────
   const signInNative = useCallback(async () => {
-    console.log('[VenBook] signInNative: tap')
     const GoogleAuth = getNativeGoogleAuth()
     if (!GoogleAuth) {
-      console.error('[VenBook] GoogleAuth unavailable (not native?)')
       alert('Google Sign-In is not available. Rebuild the iOS app after running: npx cap sync ios')
       return
     }
     try {
-      console.log('[VenBook] GoogleAuth.initialize …')
       await GoogleAuth.initialize(NATIVE_GOOGLE_AUTH_INIT)
-      console.log('[VenBook] GoogleAuth.signIn …')
       const result = await GoogleAuth.signIn()
-      console.log('[VenBook] GoogleAuth.signIn result keys:', result ? Object.keys(result) : null)
       let accessToken = result?.authentication?.accessToken
       if (!accessToken) {
-        try {
-          const refreshed = await GoogleAuth.refresh()
-          accessToken = refreshed?.accessToken
-        } catch (refreshErr) {
-          console.warn('GoogleAuth.refresh after signIn:', refreshErr)
-        }
+        try { const refreshed = await GoogleAuth.refresh(); accessToken = refreshed?.accessToken } catch {}
       }
       if (!accessToken) {
-        console.error('Native sign-in: no access token', result)
-        alert('Sign-in succeeded but no access token was returned. On Google Cloud, confirm the iOS OAuth client uses bundle ID com.venbook.app and Gmail scope is allowed for your app.')
+        alert('Sign-in succeeded but no access token was returned.')
         return
       }
       const authData = {
@@ -303,19 +284,12 @@ export default function App() {
       ls.set('vb_auth', authData)
       hapticSuccess()
     } catch (e) {
-      const code = e?.code ?? e?.error
       const msg = e?.message ?? (typeof e === 'string' ? e : JSON.stringify(e))
-      console.error('[VenBook] Native sign-in error:', e)
-      const userCancelled =
-        code === 'popup_closed_by_user'
-        || /cancel|canceled|dismissed|user denied/i.test(msg)
-      if (!userCancelled) {
-        alert(`Google sign-in failed: ${msg}`)
-      }
+      const userCancelled = /cancel|canceled|dismissed|user denied/i.test(msg)
+      if (!userCancelled) alert(`Google sign-in failed: ${msg}`)
     }
   }, [])
 
-  // ─── Web sign-in via GIS ─────────────────────────────────────────────────
   const signInWeb = useCallback(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!window.google || !clientId) { alert('Add VITE_GOOGLE_CLIENT_ID to your Netlify env vars.'); return }
@@ -336,7 +310,6 @@ export default function App() {
     client.requestAccessToken()
   }, [gisReady])
 
-  // Platform-aware sign-in
   const signIn = useCallback(() => {
     if (isNative()) return signInNative()
     return signInWeb()
@@ -373,35 +346,12 @@ export default function App() {
     updateVenue(id, { status: 'email_sent', emailSentAt: new Date().toISOString() })
     if (opts.haptic !== false) hapticSuccess()
   }
-  const saveTemplate   = (t) => {
-    setCustomTemplates((prev) => {
-      const e = prev.find((x) => x.id === t.id)
-      if (e?._shared) return prev
-      persist(() => db.upsert('email_templates', t, getToken()))
-      return e ? prev.map((x) => (x.id === t.id ? t : x)) : [...prev, t]
-    })
-  }
-  const deleteTemplate = (id) => {
-    const e = customTemplates.find((x) => x.id === id)
-    if (e?._shared) return
-    setCustomTemplates((prev) => prev.filter((x) => x.id !== id)); persist(() => db.delete('email_templates', id, getToken()))
-  }
+  const saveTemplate   = (t) => { setCustomTemplates((prev) => { const e = prev.find((x) => x.id === t.id); if (e?._shared) return prev; persist(() => db.upsert('email_templates', t, getToken())); return e ? prev.map((x) => (x.id === t.id ? t : x)) : [...prev, t] }) }
+  const deleteTemplate = (id) => { const e = customTemplates.find((x) => x.id === id); if (e?._shared) return; setCustomTemplates((prev) => prev.filter((x) => x.id !== id)); persist(() => db.delete('email_templates', id, getToken())) }
   const saveSavedVenue   = (v) => { setSavedVenues(prev => { const e = prev.find(x => x.id === v.id); const entry = e ? v : { ...v, id: `sv_${Date.now()}` }; persist(() => db.upsert('saved_venues', entry, getToken())); return e ? prev.map(x => x.id === v.id ? entry : x) : [...prev, entry] }) }
   const deleteSavedVenue = (id) => { setSavedVenues(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('saved_venues', id, getToken())) }
-  const saveSavedArtist   = (a) => {
-    setSavedArtists((prev) => {
-      const ex = prev.find((x) => x.id === a.id)
-      if (ex?._shared) return prev
-      const entry = ex ? a : { ...a, id: `sa_${Date.now()}` }
-      persist(() => db.upsert('saved_artists', entry, getToken()))
-      return ex ? prev.map((x) => (x.id === a.id ? entry : x)) : [...prev, entry]
-    })
-  }
-  const deleteSavedArtist = (id) => {
-    const e = savedArtists.find((x) => x.id === id)
-    if (e?._shared) return
-    setSavedArtists((prev) => prev.filter((x) => x.id !== id)); persist(() => db.delete('saved_artists', id, getToken()))
-  }
+  const saveSavedArtist   = (a) => { setSavedArtists((prev) => { const ex = prev.find((x) => x.id === a.id); if (ex?._shared) return prev; const entry = ex ? a : { ...a, id: `sa_${Date.now()}` }; persist(() => db.upsert('saved_artists', entry, getToken())); return ex ? prev.map((x) => (x.id === a.id ? entry : x)) : [...prev, entry] }) }
+  const deleteSavedArtist = (id) => { const e = savedArtists.find((x) => x.id === id); if (e?._shared) return; setSavedArtists((prev) => prev.filter((x) => x.id !== id)); persist(() => db.delete('saved_artists', id, getToken())) }
   const saveSurveyLink   = (l) => { setSurveyLinks(prev => { const e = prev.find(x => x.id === l.id); const entry = e ? l : { ...l, id: `sl_${Date.now()}`, createdAt: new Date().toISOString() }; persist(() => db.upsert('survey_links', entry, getToken())); return e ? prev.map(x => x.id === l.id ? entry : x) : [...prev, entry] }) }
   const deleteSurveyLink = (id) => { setSurveyLinks(prev => prev.filter(x => x.id !== id)); persist(() => db.delete('survey_links', id, getToken())) }
 
@@ -433,8 +383,8 @@ export default function App() {
 
   if (!dbReady) {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', gap: '16px' }}>
-        <VenBookLogo size={52} />
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', gap: '20px' }}>
+        <VenBookOutline size={88} />
         <div className="spinner" />
         <div style={{ fontSize: '14px', color: 'var(--text-2)', fontWeight: '500' }}>Loading VenBook...</div>
       </div>
