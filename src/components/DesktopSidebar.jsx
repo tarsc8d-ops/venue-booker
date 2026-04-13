@@ -1,4 +1,4 @@
-import { VenBookLogo, ToursIcon, VenueIcon, ArtistIcon, MailIcon, LinkIcon, SettingsIcon } from './Icons'
+import { VenBookLogo, VenBookLockupWhite, VenBookCompact, ToursIcon, VenueIcon, ArtistIcon, MailIcon, LinkIcon, SettingsIcon } from './Icons'
 
 export default function DesktopSidebar({ auth, currentPage, onNav, onSignOut }) {
   const navItems = [
@@ -12,8 +12,7 @@ export default function DesktopSidebar({ auth, currentPage, onNav, onSignOut }) 
   return (
     <aside className="desktop-sidebar">
       <div className="ds-brand" onClick={() => onNav('tours')} style={{ cursor: 'pointer' }}>
-        <VenBookLogo size={30} />
-        <span className="ds-brand-name">VenBook</span>
+        <VenBookCompact />
       </div>
 
       <nav className="ds-nav">
