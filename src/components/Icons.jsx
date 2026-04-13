@@ -1,5 +1,5 @@
 // Clean SVG icon set for VenBook — Heroicons outline style (stroke-based, currentColor)
-// All icons: 20x20 viewBox, strokeWidth 1.6, no fill
+// All icons: 24x24 viewBox, strokeWidth 1.6, no fill
 
 const props = (extra = {}) => ({
   xmlns: 'http://www.w3.org/2000/svg',
@@ -13,15 +13,52 @@ const props = (extra = {}) => ({
   ...extra,
 })
 
-export const VenBookLogo = ({ size = 28, color = 'white' }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="32" rx="8" fill="#7C3AED" />
-    <path d="M8 9l5.5 14L19 9" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M19 9l5 14" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M15 17h6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+// ── Brand mark: purple square + white V ──────────────────────────────────────
+export const VenBookLogo = ({ size = 28 }) => (
+  <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" rx="22" fill="#7C3AED"/>
+    <path d="M22 24L40 56L58 24" stroke="white" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 
+// ── Outline icon: transparent bg, purple border + V (for splash screen) ──────
+export const VenBookOutline = ({ size = 80 }) => (
+  <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2.5" y="2.5" width="75" height="75" rx="20" stroke="#7C3AED" strokeWidth="2"/>
+    <path d="M22 24L40 56L58 24" stroke="#7C3AED" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+// ── Full lockup: icon square + Ven+Book wordmark (for mobile header, light bg) ─
+export const VenBookLockup = () => (
+  <svg width="220" height="52" viewBox="0 0 220 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="1" width="50" height="50" rx="14" fill="#7C3AED"/>
+    <path d="M13 15L25 41L37 15" stroke="white" strokeWidth="3.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <text x="62" y="35" fontFamily="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" fontSize="26" fontWeight="700" letterSpacing="-0.8" fill="#1C1C1E">Ven</text>
+    <text x="113" y="35" fontFamily="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" fontSize="26" fontWeight="300" letterSpacing="-0.8" fill="#7C3AED">Book</text>
+  </svg>
+)
+
+// ── Full lockup white: for dark / purple backgrounds (mobile header on dark bg) ─
+export const VenBookLockupWhite = () => (
+  <svg width="220" height="52" viewBox="0 0 220 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="1" width="50" height="50" rx="14" fill="rgba(255,255,255,0.15)"/>
+    <path d="M13 15L25 41L37 15" stroke="white" strokeWidth="3.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <text x="62" y="35" fontFamily="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" fontSize="26" fontWeight="700" letterSpacing="-0.8" fill="white">Ven</text>
+    <text x="113" y="35" fontFamily="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" fontSize="26" fontWeight="300" letterSpacing="-0.8" fill="rgba(255,255,255,0.65)">Book</text>
+  </svg>
+)
+
+// ── Compact nav lockup: for dark sidebar ─────────────────────────────────────
+export const VenBookCompact = () => (
+  <svg width="140" height="34" viewBox="0 0 140 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 7L14 27L24 7" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <text x="32" y="24" fontFamily="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" fontSize="20" fontWeight="700" letterSpacing="-0.5" fill="white">Ven</text>
+    <text x="71" y="24" fontFamily="-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif" fontSize="20" fontWeight="300" letterSpacing="-0.5" fill="rgba(255,255,255,0.55)">Book</text>
+  </svg>
+)
+
+// ── Navigation & UI icons ─────────────────────────────────────────────────────
 export const ToursIcon = (p) => (
   <svg {...props(p)}>
     <path d="M3 6h18M3 12h18M3 18h18" />
@@ -70,7 +107,6 @@ export const PlusIcon = (p) => (
   <svg {...props(p)}><path d="M12 5v14M5 12h14" /></svg>
 )
 
-/** Teams / groups — three people */
 export const UserGroupIcon = (p) => (
   <svg {...props(p)}>
     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
@@ -82,12 +118,6 @@ export const UserGroupIcon = (p) => (
 export const HomeIcon = (p) => (
   <svg {...props(p)}>
     <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z" />
-  </svg>
-)
-
-export const ChartBarIcon = (p) => (
-  <svg {...props(p)}>
-    <path d="M4 19V5M10 19v-6M16 19V9M22 19v-9" />
   </svg>
 )
 
@@ -112,14 +142,6 @@ export const SearchIcon = (p) => (
     <circle cx="11" cy="11" r="8" />
     <path d="M21 21l-4.35-4.35" />
   </svg>
-)
-
-export const ChevronRightIcon = (p) => (
-  <svg {...props(p)}><polyline points="9 18 15 12 9 6" /></svg>
-)
-
-export const ChevronLeftIcon = (p) => (
-  <svg {...props(p)}><polyline points="15 18 9 12 15 6" /></svg>
 )
 
 export const XIcon = (p) => (
@@ -214,5 +236,19 @@ export const LogOutIcon = (p) => (
     <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
     <polyline points="16 17 21 12 16 7" />
     <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+)
+
+export const ChevronRightIcon = (p) => (
+  <svg {...props(p)}><polyline points="9 18 15 12 9 6" /></svg>
+)
+
+export const ChevronLeftIcon = (p) => (
+  <svg {...props(p)}><polyline points="15 18 9 12 15 6" /></svg>
+)
+
+export const ChartBarIcon = (p) => (
+  <svg {...props(p)}>
+    <path d="M4 19V5M10 19v-6M16 19V9M22 19v-9" />
   </svg>
 )
